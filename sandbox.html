@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonobe Sandbox — Modular Origami</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0d0d1a; color: white; font-family: sans-serif; }
+    #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; }
+    #ui * { pointer-events: auto; }
+    .btn {
+      background: #4488cc; color: white; border: none; padding: 10px 20px;
+      cursor: pointer; border-radius: 4px; font-weight: bold; margin-bottom: 10px;
+    }
+    .btn:hover { background: #336699; }
+    #help { position: absolute; bottom: 20px; left: 20px; font-size: 0.9em; opacity: 0.8; }
+    #back { position: absolute; top: 20px; right: 20px; color: #ccc; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <button id="add-unit" class="btn">Add Sonobe Unit</button>
+</div>
+
+<div id="help">
+  <strong>Click</strong> to select a unit.<br>
+  <strong>Drag gizmo</strong> to move/rotate.<br>
+  <strong>T</strong>: Move | <strong>R</strong>: Rotate | <strong>Delete</strong>: Remove<br>
+  <strong>Left Drag (empty space)</strong>: Rotate View
+</div>
+
+<a id="back" href="index.html">← Back to Tutorial</a>
+
+<div id="container"></div>
+
+<!-- Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r110/three.min.js"></script>
+<script src="js/lib/trackballcontrols-no-scroll.js"></script>
+<!-- TransformControls for v110 -->
+<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r110/examples/js/controls/TransformControls.js"></script>
+
+<script type="module" src="js/sandbox.js"></script>
+
+</body>
+</html>

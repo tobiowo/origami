@@ -1,0 +1,3 @@
+[submodule "fold-validator"]
+	path = fold-validator
+	url = https://github.com/rabbit-ear/fold-validator.git

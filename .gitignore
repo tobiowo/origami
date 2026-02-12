@@ -1,0 +1,20 @@
+# Reference and non-app material
+references/
+.claude/
+
+# Dependencies
+node_modules/
+
+# Local server logs
+server.log
+server_err.log
+
+# Screenshots and temporary assets
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# OS generated and reserved files
+.DS_Store
+Thumbs.db
