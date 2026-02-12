@@ -112,10 +112,13 @@ export class AssemblyView {
     this.renderer = null;
     this.controls = null;
     this.units = [];
+    this.unitGroup = new THREE.Group();
     this.animationId = null;
     this.ready = false;
     this.modelType = 6;
     this.unitCount = 0;
+    this.autoRotate = false;
+    this.dynamicLight = null;
   }
 
   init(containerEl) {
@@ -143,15 +146,29 @@ export class AssemblyView {
     this.controls.staticMoving = true;
 
     this.scene.add(new THREE.AmbientLight(0x404060, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
     dirLight.position.set(5, 10, 5);
     this.scene.add(dirLight);
+
+    // Add a dynamic "cinematic" light
+    this.dynamicLight = new THREE.PointLight(0xffffff, 0.8, 20);
+    this.scene.add(this.dynamicLight);
+
+    this.scene.add(this.unitGroup);
 
     this._onResize = () => this._handleResize();
     window.addEventListener('resize', this._onResize);
 
     this.ready = true;
     this._animate();
+  }
+
+  setCinematicMode(enabled) {
+    this.autoRotate = enabled;
+    if (!enabled) {
+      if (this.unitGroup) this.unitGroup.rotation.set(0, 0, 0);
+      if (this.dynamicLight) this.dynamicLight.position.set(5, 5, 5);
+    }
   }
 
   setModelType(type) {
@@ -163,7 +180,7 @@ export class AssemblyView {
     this.unitCount = count;
     if (!this.ready) return;
 
-    this.units.forEach(u => this.scene.remove(u));
+    this.units.forEach(u => this.unitGroup.remove(u));
     this.units = [];
 
     const defs = this._getUnitDefs();
@@ -171,7 +188,7 @@ export class AssemblyView {
     
     for (let i = 0; i < n; i++) {
       const unit = this._createUnit(defs[i], i);
-      this.scene.add(unit);
+      this.unitGroup.add(unit);
       this.units.push(unit);
     }
   }
@@ -192,13 +209,27 @@ export class AssemblyView {
   // --- Private ---
 
   _animate() {
-    this.animationId = requestAnimationFrame(() => this._animate());
-    if (this.controls) this.controls.update();
-    if (this.renderer && this.scene && this.camera) {
-      this.renderer.render(this.scene, this.camera);
+    this.animationId = requestAnimationFrame((t) => this._animate(t));
+    
+    if (this.ready) {
+      const time = performance.now() * 0.001;
+
+      if (this.autoRotate && this.unitGroup) {
+        this.unitGroup.rotation.y += 0.003;
+      }
+
+      if (this.dynamicLight && this.autoRotate) {
+        this.dynamicLight.position.x = Math.sin(time * 0.7) * 4;
+        this.dynamicLight.position.z = Math.cos(time * 0.7) * 4;
+        this.dynamicLight.position.y = Math.sin(time * 0.5) * 2 + 2;
+      }
+
+      if (this.controls) this.controls.update();
+      if (this.renderer && this.scene && this.camera) {
+        this.renderer.render(this.scene, this.camera);
+      }
     }
   }
-
   _handleResize() {
     if (!this.container || !this.renderer) return;
     const rect = this.container.getBoundingClientRect();
@@ -218,6 +249,9 @@ export class AssemblyView {
       flatShading: true,
       transparent: true,
       opacity: 0.95,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     });
 
     const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1.5 });
@@ -248,6 +282,7 @@ export class AssemblyView {
       case 60:  return this._generatePentakisDodecahedron();
       case 90:  return this._generateTruncatedIcosahedron();
       case 120: return this._generateRhombicosidodecahedron();
+      case 270: return this._generateGeodesicIcosahedron270();
       default:  return this._generateCube();
     }
   }
@@ -474,64 +509,10 @@ export class AssemblyView {
   _generateTruncatedIcosahedron() {
     // Stellated truncated icosahedron ("spiky football"):
     // 12 pentagons + 20 hexagons = 32 faces, 90 edges → 90 units.
+    // Built combinatorially by truncating icosahedron vertices at 1/3 along each edge.
     const phi = (1 + Math.sqrt(5)) / 2;
-    const S = 0.35;  // scale for visibility
+    const S = 0.35;
 
-    // Truncated icosahedron vertices (even permutations of):
-    // (0, ±1, ±3φ), (±1, ±(2+φ), ±2φ), (±2, ±(1+2φ), ±φ),
-    // (±φ², ±2, ±(2φ+1)) — using φ²=φ+1
-    const twoPhiPlus1 = 2*phi + 1;
-    const twoPlusPhi = 2 + phi;
-    const threePhi = 3 * phi;
-    const twoPhi = 2 * phi;
-
-    const rawVerts = [];
-
-    // Generate all even permutations with sign variations
-    const evenPerms = (a, b, c) => {
-      // Even permutations of (a, b, c): (a,b,c), (b,c,a), (c,a,b)
-      return [[a,b,c], [b,c,a], [c,a,b]];
-    };
-
-    const addSignVariants = (a, b, c) => {
-      const perms = evenPerms(a, b, c);
-      for (const [x, y, z] of perms) {
-        for (const sx of (x === 0 ? [1] : [1, -1])) {
-          for (const sy of (y === 0 ? [1] : [1, -1])) {
-            for (const sz of (z === 0 ? [1] : [1, -1])) {
-              rawVerts.push([sx*x, sy*y, sz*z]);
-            }
-          }
-        }
-      }
-    };
-
-    // 3 coordinate families for truncated icosahedron:
-    // (0, ±1, ±3φ), (±1, ±(2+φ), ±2φ), (±φ, ±2, ±(2φ+1))
-    addSignVariants(0, 1, threePhi);
-    addSignVariants(1, twoPlusPhi, twoPhi);
-    addSignVariants(phi, 2, twoPhiPlus1);
-
-    // Remove duplicates (floating point)
-    const uniqueVerts = [];
-    const seen = new Set();
-    rawVerts.forEach(v => {
-      const key = v.map(c => c.toFixed(6)).join(',');
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueVerts.push(v.map(c => c * S));
-      }
-    });
-
-    const verts = uniqueVerts;  // Should be 60 vertices
-
-    // Build faces by finding co-planar vertex groups
-    // Each face is a regular polygon (pentagon or hexagon)
-    // We use the icosahedron face normals and vertex normals to identify faces.
-
-    // Approach: use face normals of the truncated icosahedron.
-    // Pentagon normals = icosahedron vertex directions (12)
-    // Hexagon normals = icosahedron face normals (20)
     const icoVerts = [
       [-1, phi, 0], [1, phi, 0], [-1,-phi, 0], [1,-phi, 0],
       [0,-1, phi], [0, 1, phi], [0,-1,-phi], [0, 1,-phi],
@@ -544,159 +525,344 @@ export class AssemblyView {
       [4,9,5], [2,4,11], [6,2,10], [8,6,7], [9,8,1]
     ];
 
-    // Pentagon normals: from icosahedron vertices (12 directions)
-    const pentNormals = icoVerts.map(v => normalize(v));
-    // Hexagon normals: from icosahedron face centroids (20 directions)
-    const hexNormals = icoFaces.map(f => {
-      const c = scl(add3(icoVerts[f[0]], icoVerts[f[1]], icoVerts[f[2]]), 1/3);
-      return normalize(c);
-    });
-
-    const allNormals = [...pentNormals, ...hexNormals];
-
-    // For each normal, find vertices that lie on that face plane
-    // (highest dot product with the normal)
-    const faces = [];
-    for (const fn of allNormals) {
-      // Find the max dot product
-      const dots = verts.map(v => dot(v, fn));
-      const maxDot = Math.max(...dots);
-      // Vertices on this face have dot ≈ maxDot
-      const faceVerts = [];
-      dots.forEach((d, i) => {
-        if (Math.abs(d - maxDot) < 0.001 * S) faceVerts.push(i);
-      });
-
-      if (faceVerts.length < 3) continue;
-
-      // Order vertices cyclically around the face
-      const center = scl(faceVerts.reduce((a, vi) => add(a, verts[vi]), [0,0,0]), 1/faceVerts.length);
-      // Build a local 2D coordinate system on the face plane
-      const u = normalize(sub(verts[faceVerts[0]], center));
-      const v = cross(fn, u);
-      // Sort by angle
-      faceVerts.sort((a, b) => {
-        const da = sub(verts[a], center);
-        const db = sub(verts[b], center);
-        return Math.atan2(dot(da, v), dot(da, u)) - Math.atan2(dot(db, v), dot(db, u));
-      });
-
-      faces.push(faceVerts);
-    }
-
-    return buildStellatedUnits(verts, faces, S, 0.02);
-  }
-
-  _generateRhombicosidodecahedron() {
-    // Stellated rhombicosidodecahedron:
-    // 20 triangles + 30 squares + 12 pentagons = 62 faces, 120 edges → 120 units.
-    const phi = (1 + Math.sqrt(5)) / 2;
-    const S = 0.3;  // scale for visibility
-
-    // Rhombicosidodecahedron vertices are even permutations of:
-    // (±1, ±1, ±φ³), (±φ², ±φ, ±2φ), (±(2+φ), 0, ±φ²)
-    // where φ³ = 2φ+1, φ² = φ+1
-    const phi2 = phi + 1;
-    const phi3 = 2*phi + 1;
-    const twoPhi = 2 * phi;
-    const twoPlusPhi = 2 + phi;
-
-    const rawVerts = [];
-
-    const evenPerms = (a, b, c) => [[a,b,c], [b,c,a], [c,a,b]];
-
-    const addSignVariants = (a, b, c) => {
-      const perms = evenPerms(a, b, c);
-      for (const [x, y, z] of perms) {
-        for (const sx of (x === 0 ? [1] : [1, -1])) {
-          for (const sy of (y === 0 ? [1] : [1, -1])) {
-            for (const sz of (z === 0 ? [1] : [1, -1])) {
-              rawVerts.push([sx*x, sy*y, sz*z]);
-            }
-          }
-        }
-      }
-    };
-
-    addSignVariants(1, 1, phi3);
-    addSignVariants(phi2, phi, twoPhi);
-    addSignVariants(twoPlusPhi, 0, phi2);
-
-    // Remove duplicates
-    const uniqueVerts = [];
-    const seen = new Set();
-    rawVerts.forEach(v => {
-      const key = v.map(c => c.toFixed(6)).join(',');
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueVerts.push(v.map(c => c * S));
-      }
-    });
-
-    const verts = uniqueVerts;  // Should be 60 vertices
-
-    // Build faces using face normals.
-    // Triangle normals: icosahedron vertex directions (12 × but we need 20 triangle normals)
-    // Actually: triangle normals = icosahedron face normals (20),
-    //           square normals = icosidodecahedron edge midpoints (30),
-    //           pentagon normals = icosahedron vertex directions (12).
-    const icoVerts = [
-      [-1, phi, 0], [1, phi, 0], [-1,-phi, 0], [1,-phi, 0],
-      [0,-1, phi], [0, 1, phi], [0,-1,-phi], [0, 1,-phi],
-      [phi, 0,-1], [phi, 0, 1], [-phi, 0,-1], [-phi, 0, 1]
-    ];
-    const icoFaces = [
-      [0,11,5], [0,5,1], [0,1,7], [0,7,10], [0,10,11],
-      [1,5,9], [5,11,4], [11,10,2], [10,7,6], [7,1,8],
-      [3,9,4], [3,4,2], [3,2,6], [3,6,8], [3,8,9],
-      [4,9,5], [2,4,11], [6,2,10], [8,6,7], [9,8,1]
-    ];
-
-    // Get icosahedron edges for square normals
+    // Extract 30 unique icosahedron edges
     const icoEdgeSet = new Set();
-    const icoEdgeMids = [];
+    const icoEdges = [];
     icoFaces.forEach(f => {
       for (let k = 0; k < 3; k++) {
         const a = f[k], b = f[(k+1)%3];
         const key = Math.min(a,b) + ',' + Math.max(a,b);
         if (!icoEdgeSet.has(key)) {
           icoEdgeSet.add(key);
-          icoEdgeMids.push(normalize(mid(icoVerts[a], icoVerts[b])));
+          icoEdges.push([a, b]);
         }
       }
     });
 
-    // 20 triangle normals (icosahedron face centroids)
-    const triNormals = icoFaces.map(f =>
-      normalize(scl(add3(icoVerts[f[0]], icoVerts[f[1]], icoVerts[f[2]]), 1/3))
-    );
-    // 30 square normals (icosahedron edge midpoints)
-    const sqNormals = icoEdgeMids;
-    // 12 pentagon normals (icosahedron vertices)
-    const pentNormals = icoVerts.map(v => normalize(v));
+    // Edge key → edge index lookup
+    const edgeKeyToIdx = {};
+    icoEdges.forEach(([a, b], idx) => {
+      edgeKeyToIdx[Math.min(a,b) + ',' + Math.max(a,b)] = idx;
+    });
 
-    const allNormals = [...triNormals, ...sqNormals, ...pentNormals];
+    // 60 vertices: 2 per icosahedron edge (truncation at 1/3 from each end)
+    // edgeIdx*2   = near icoEdges[edgeIdx][0]  (1/3 from vertex a)
+    // edgeIdx*2+1 = near icoEdges[edgeIdx][1]  (1/3 from vertex b)
+    const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+    const verts = [];
+    icoEdges.forEach(([a, b]) => {
+      verts.push(lerp(icoVerts[a], icoVerts[b], 1/3).map(c => c * S));  // near a
+      verts.push(lerp(icoVerts[a], icoVerts[b], 2/3).map(c => c * S));  // near b
+    });
 
+    // Helper: get truncated vertex index "near vertex vi" on edge (a,b)
+    const nearIdx = (edgeIdx, vi) => {
+      const [a, b] = icoEdges[edgeIdx];
+      return a === vi ? edgeIdx * 2 : edgeIdx * 2 + 1;
+    };
+
+    // Helper: get edge index for icosahedron edge between vertices a and b
+    const getEdgeIdx = (a, b) => edgeKeyToIdx[Math.min(a,b) + ',' + Math.max(a,b)];
+
+    // 12 Pentagon faces: one per icosahedron vertex
+    // Each vertex has 5 incident edges; collect the "near-vi" vertex from each, order cyclically
+    const pentFaces = [];
+    for (let vi = 0; vi < 12; vi++) {
+      const adjEdgeIdxs = [];
+      icoEdges.forEach(([a, b], idx) => {
+        if (a === vi || b === vi) adjEdgeIdxs.push(idx);
+      });
+      // Order cyclically using shared-face adjacency
+      const ordered = [adjEdgeIdxs[0]];
+      const used = new Set([adjEdgeIdxs[0]]);
+      while (ordered.length < adjEdgeIdxs.length) {
+        const last = ordered[ordered.length - 1];
+        const [la, lb] = icoEdges[last];
+        const lastOther = la === vi ? lb : la;
+        for (const candidate of adjEdgeIdxs) {
+          if (used.has(candidate)) continue;
+          const [ca, cb] = icoEdges[candidate];
+          const candOther = ca === vi ? cb : ca;
+          if (icoFaces.some(f => f.includes(vi) && f.includes(lastOther) && f.includes(candOther))) {
+            ordered.push(candidate);
+            used.add(candidate);
+            break;
+          }
+        }
+        if (ordered.length === used.size) continue; // already added
+        if (used.size < ordered.length) break; // stuck
+      }
+      pentFaces.push(ordered.map(ei => nearIdx(ei, vi)));
+    }
+
+    // 20 Hexagon faces: one per icosahedron face
+    // For face [a,b,c], the hexagon has 6 vertices from truncating each corner:
+    // [near-a on a-b, near-b on a-b, near-b on b-c, near-c on b-c, near-c on c-a, near-a on c-a]
+    const hexFaces = icoFaces.map(([a, b, c]) => {
+      const eAB = getEdgeIdx(a, b);
+      const eBC = getEdgeIdx(b, c);
+      const eCA = getEdgeIdx(c, a);
+      return [
+        nearIdx(eAB, a), nearIdx(eAB, b),
+        nearIdx(eBC, b), nearIdx(eBC, c),
+        nearIdx(eCA, c), nearIdx(eCA, a),
+      ];
+    });
+
+    const faces = [...pentFaces, ...hexFaces];
+    return buildStellatedUnits(verts, faces, S, 0.02);
+  }
+
+  _generateGeodesicIcosahedron270() {
+    // Frequency-3 geodesic subdivision of icosahedron:
+    // Each of 20 faces → 9 sub-triangles = 180 faces, 270 edges → 270 units.
+    // 92 vertices: 12 original + 60 on edges (2 per edge) + 20 face centers.
+    const phi = (1 + Math.sqrt(5)) / 2;
+    const S = 0.25;  // scale down for large model
+
+    const icoVerts = [
+      [-1, phi, 0], [1, phi, 0], [-1,-phi, 0], [1,-phi, 0],
+      [0,-1, phi], [0, 1, phi], [0,-1,-phi], [0, 1,-phi],
+      [phi, 0,-1], [phi, 0, 1], [-phi, 0,-1], [-phi, 0, 1]
+    ];
+    const icoFaces = [
+      [0,11,5], [0,5,1], [0,1,7], [0,7,10], [0,10,11],
+      [1,5,9], [5,11,4], [11,10,2], [10,7,6], [7,1,8],
+      [3,9,4], [3,4,2], [3,2,6], [3,6,8], [3,8,9],
+      [4,9,5], [2,4,11], [6,2,10], [8,6,7], [9,8,1]
+    ];
+
+    // Extract 30 unique icosahedron edges
+    const icoEdgeSet = new Set();
+    const icoEdges = [];
+    icoFaces.forEach(f => {
+      for (let k = 0; k < 3; k++) {
+        const a = f[k], b = f[(k+1)%3];
+        const key = Math.min(a,b) + ',' + Math.max(a,b);
+        if (!icoEdgeSet.has(key)) {
+          icoEdgeSet.add(key);
+          icoEdges.push([a, b]);
+        }
+      }
+    });
+
+    const edgeKeyToIdx = {};
+    icoEdges.forEach(([a, b], idx) => {
+      edgeKeyToIdx[Math.min(a,b) + ',' + Math.max(a,b)] = idx;
+    });
+
+    // Vertex allocation:
+    // - 12 original icosahedron vertices: indices 0..11
+    // - 60 edge vertices (2 per edge): indices 12 + edgeIdx*2, 12 + edgeIdx*2 + 1
+    //   For edge (a,b): index 12+edgeIdx*2 is at 1/3 from a, 12+edgeIdx*2+1 is at 2/3 from a
+    // - 20 face center vertices: indices 12 + 60 + faceIdx = 72 + faceIdx
+    // Total: 12 + 60 + 20 = 92
+
+    const lerp3 = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+    // Compute all vertex positions (unscaled, on original icosahedron surface)
+    const rawVerts = new Array(92);
+
+    // Original 12 vertices
+    for (let i = 0; i < 12; i++) rawVerts[i] = icoVerts[i].slice();
+
+    // Edge vertices: 2 per edge at 1/3 and 2/3
+    icoEdges.forEach(([a, b], idx) => {
+      rawVerts[12 + idx*2]     = lerp3(icoVerts[a], icoVerts[b], 1/3);
+      rawVerts[12 + idx*2 + 1] = lerp3(icoVerts[a], icoVerts[b], 2/3);
+    });
+
+    // Face center vertices
+    icoFaces.forEach(([a, b, c], fi) => {
+      rawVerts[72 + fi] = icoVerts[a].map((v, i) => (v + icoVerts[b][i] + icoVerts[c][i]) / 3);
+    });
+
+    // Project all vertices onto sphere and scale
+    const sphereR = len(icoVerts[0]); // radius of icosahedron circumsphere
+    const verts = rawVerts.map(v => {
+      const r = len(v);
+      return v.map(c => (c / r) * sphereR * S);
+    });
+
+    // Helper: get the global vertex index for a barycentric point (i,j,k) on face [a,b,c]
+    // where i+j+k=3, point = (i/3)*A + (j/3)*B + (k/3)*C
+    // i corresponds to vertex a, j to b, k to c
+    const getVertIdx = (faceIdx, a, b, c, i, j, k) => {
+      // Corner vertices (one coordinate = 3)
+      if (i === 3) return a;
+      if (j === 3) return b;
+      if (k === 3) return c;
+
+      // Edge vertices (one coordinate = 0)
+      if (k === 0) {
+        // On edge a-b: i+j=3, point at i/3 from a toward b... wait:
+        // point = (i/3)*A + (j/3)*B, so distance from a is j/3
+        // j=1 → 1/3 from a, j=2 → 2/3 from a
+        const eIdx = edgeKeyToIdx[Math.min(a,b) + ',' + Math.max(a,b)];
+        const [ea, eb] = icoEdges[eIdx];
+        // Our convention: 12+eIdx*2 is at 1/3 from ea, 12+eIdx*2+1 is at 2/3 from ea
+        const tFromA = j / 3; // fraction from a toward b
+        // Convert to fraction from ea toward eb
+        let tFromEa;
+        if (ea === a) tFromEa = tFromA;
+        else tFromEa = 1 - tFromA;
+        // tFromEa = 1/3 → index 12+eIdx*2, tFromEa = 2/3 → index 12+eIdx*2+1
+        return tFromEa < 0.5 ? 12 + eIdx*2 : 12 + eIdx*2 + 1;
+      }
+      if (j === 0) {
+        // On edge a-c: i+k=3, distance from a toward c is k/3
+        const eIdx = edgeKeyToIdx[Math.min(a,c) + ',' + Math.max(a,c)];
+        const [ea] = icoEdges[eIdx];
+        const tFromA = k / 3;
+        let tFromEa = ea === a ? tFromA : 1 - tFromA;
+        return tFromEa < 0.5 ? 12 + eIdx*2 : 12 + eIdx*2 + 1;
+      }
+      if (i === 0) {
+        // On edge b-c: j+k=3, distance from b toward c is k/3
+        const eIdx = edgeKeyToIdx[Math.min(b,c) + ',' + Math.max(b,c)];
+        const [ea] = icoEdges[eIdx];
+        const tFromB = k / 3;
+        let tFromEa = ea === b ? tFromB : 1 - tFromB;
+        return tFromEa < 0.5 ? 12 + eIdx*2 : 12 + eIdx*2 + 1;
+      }
+
+      // Interior point: i=1, j=1, k=1 → face center
+      return 72 + faceIdx;
+    };
+
+    // Build 9 sub-triangles per icosahedron face
+    // Barycentric grid for freq=3: row by row
+    // Row r has points where i = 3-r (r counts from vertex a downward)
+    // Sub-triangles: upward-pointing and downward-pointing
     const faces = [];
-    for (const fn of allNormals) {
-      const dots = verts.map(v => dot(v, fn));
-      const maxDot = Math.max(...dots);
-      const faceVerts = [];
-      dots.forEach((d, i) => {
-        if (Math.abs(d - maxDot) < 0.001 * S) faceVerts.push(i);
-      });
-      if (faceVerts.length < 3) continue;
+    icoFaces.forEach(([a, b, c], fi) => {
+      // All barycentric triples (i,j,k) with i+j+k=3, 0≤i,j,k≤3
+      // Arranged in a triangular grid. We enumerate sub-triangles:
+      // For freq=3, the sub-triangles are:
+      // Upward-pointing: for each (i,j,k) with i+j+k=3, i≥1, j≥0, k≥0:
+      //   triangle at (i,j,k), (i-1,j+1,k), (i-1,j,k+1)
+      // Downward-pointing: for each (i,j,k) with i+j+k=3, i≤2, j≥1, k≥1:
+      //   triangle at (i,j,k), (i+1,j-1,k), (i+1,j,k-1)
+      // Actually easier: enumerate row by row
 
-      // Order cyclically
-      const center = scl(faceVerts.reduce((a, vi) => add(a, verts[vi]), [0,0,0]), 1/faceVerts.length);
-      const u = normalize(sub(verts[faceVerts[0]], center));
-      const v = cross(fn, u);
-      faceVerts.sort((a, b) => {
-        const da = sub(verts[a], center);
-        const db = sub(verts[b], center);
-        return Math.atan2(dot(da, v), dot(da, u)) - Math.atan2(dot(db, v), dot(db, u));
+      for (let i = 3; i >= 1; i--) {
+        for (let j = 0; j <= 3-i; j++) {
+          const k = 3 - i - j;
+          // Upward-pointing triangle: (i,j,k), (i-1,j+1,k), (i-1,j,k+1)
+          const v0 = getVertIdx(fi, a, b, c, i, j, k);
+          const v1 = getVertIdx(fi, a, b, c, i-1, j+1, k);
+          const v2 = getVertIdx(fi, a, b, c, i-1, j, k+1);
+          faces.push([v0, v1, v2]);
+        }
+      }
+      // Downward-pointing triangles
+      for (let i = 2; i >= 0; i--) {
+        for (let j = 1; j <= 3-i; j++) {
+          const k = 3 - i - j;
+          if (k < 0) continue;
+          // Downward-pointing: (i,j,k), (i+1,j-1,k), (i+1,j,k-1)
+          if (k >= 1) {
+            const v0 = getVertIdx(fi, a, b, c, i, j, k);
+            const v1 = getVertIdx(fi, a, b, c, i+1, j-1, k);
+            const v2 = getVertIdx(fi, a, b, c, i+1, j, k-1);
+            faces.push([v0, v1, v2]);
+          }
+        }
+      }
+    });
+
+    return buildStellatedUnits(verts, faces, S, 0.01);
+  }
+
+  _generateRhombicosidodecahedron() {
+    // Stellated rhombicosidodecahedron:
+    // 20 triangles + 30 squares + 12 pentagons = 62 faces, 120 edges → 120 units.
+    // Vertices from Cartesian coordinates, faces found via edge-graph traversal.
+    const phi = (1 + Math.sqrt(5)) / 2;
+    const S = 0.3;
+
+    // Generate 60 vertices from even permutations of:
+    // (±1, ±1, ±φ³), (±φ², ±φ, ±2φ), (±(2+φ), 0, ±φ²)
+    const phi2 = phi + 1, phi3 = 2*phi + 1, twoPhi = 2*phi, twoPlusPhi = 2 + phi;
+    const rawVerts = [];
+    const evenPerms = (a, b, c) => [[a,b,c], [b,c,a], [c,a,b]];
+    const addSV = (a, b, c) => {
+      for (const [x, y, z] of evenPerms(a, b, c))
+        for (const sx of (x === 0 ? [1] : [1,-1]))
+          for (const sy of (y === 0 ? [1] : [1,-1]))
+            for (const sz of (z === 0 ? [1] : [1,-1]))
+              rawVerts.push([sx*x, sy*y, sz*z]);
+    };
+    addSV(1, 1, phi3);
+    addSV(phi2, phi, twoPhi);
+    addSV(twoPlusPhi, 0, phi2);
+
+    const seen = new Set();
+    const verts = [];
+    rawVerts.forEach(v => {
+      const key = v.map(c => c.toFixed(6)).join(',');
+      if (!seen.has(key)) { seen.add(key); verts.push(v.map(c => c * S)); }
+    });
+
+    // Find edge length (minimum pairwise distance)
+    const dist2 = (a, b) => a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0);
+    let minD2 = Infinity;
+    for (let i = 0; i < verts.length; i++)
+      for (let j = i + 1; j < verts.length; j++) {
+        const d = dist2(verts[i], verts[j]);
+        if (d < minD2) minD2 = d;
+      }
+    const edgeTol = minD2 * 0.01;  // 1% tolerance
+
+    // Build adjacency list from edges
+    const adj = verts.map(() => []);
+    for (let i = 0; i < verts.length; i++)
+      for (let j = i + 1; j < verts.length; j++) {
+        if (Math.abs(dist2(verts[i], verts[j]) - minD2) < edgeTol) {
+          adj[i].push(j);
+          adj[j].push(i);
+        }
+      }
+
+    // Sort each vertex's neighbors cyclically (CCW when viewed from outside)
+    for (let vi = 0; vi < verts.length; vi++) {
+      const n = normalize(verts[vi]);  // outward normal (all verts on sphere)
+      const ref = normalize(sub(verts[adj[vi][0]], verts[vi]));
+      const tang = cross(n, ref);
+      adj[vi].sort((a, b) => {
+        const da = sub(verts[a], verts[vi]);
+        const db = sub(verts[b], verts[vi]);
+        return Math.atan2(dot(da, tang), dot(da, ref)) - Math.atan2(dot(db, tang), dot(db, ref));
       });
-      faces.push(faceVerts);
+    }
+
+    // Find faces via half-edge traversal:
+    // For directed edge (u→v), next edge in CW face = (v → prev_ccw_neighbor_of_v_from_u)
+    const faces = [];
+    const usedHE = new Set();
+
+    for (let u = 0; u < verts.length; u++) {
+      for (const v of adj[u]) {
+        const heKey = u + ',' + v;
+        if (usedHE.has(heKey)) continue;
+
+        const face = [];
+        let cu = u, cv = v;
+        let safety = 0;
+        while (safety++ < 20) {
+          face.push(cu);
+          usedHE.add(cu + ',' + cv);
+          // At vertex cv, find neighbor before cu in CCW order (= CW next)
+          const nbrs = adj[cv];
+          const idx = nbrs.indexOf(cu);
+          const nextIdx = (idx - 1 + nbrs.length) % nbrs.length;
+          const next = nbrs[nextIdx];
+          cu = cv;
+          cv = next;
+          if (cu === u && cv === v) break;
+        }
+        if (face.length >= 3 && face.length <= 6) faces.push(face);
+      }
     }
 
     return buildStellatedUnits(verts, faces, S, 0.015);

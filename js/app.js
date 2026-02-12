@@ -25,6 +25,7 @@ class App {
       sliderGroup: document.getElementById('fold-slider-group'),
       modelSelector: document.getElementById('model-selector'),
       modelSelectorGroup: document.getElementById('model-selector-group'),
+      checkCinematic: document.getElementById('check-cinematic'),
       simulatorContainer: document.getElementById('simulator-container'),
       assemblyContainer: document.getElementById('assembly-container'),
       loadingOverlay: document.getElementById('loading-overlay'),
@@ -96,6 +97,12 @@ class App {
         this.currentStep = 7;
       }
       this._renderStep();
+    });
+
+    this.els.checkCinematic.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      this.foldingView.setCinematicMode(enabled);
+      this.assemblyView.setCinematicMode(enabled);
     });
 
     document.addEventListener('keydown', (e) => {

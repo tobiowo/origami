@@ -3,6 +3,9 @@ export class FoldingView {
     this.simulator = null;
     this.container = null;
     this.currentStepFunc = null;
+    this.autoRotate = false;
+    this.dynamicLight = null;
+    this.animationId = null;
   }
 
   init(container) {
@@ -22,11 +25,46 @@ export class FoldingView {
     });
     window.simulator = this.simulator;
 
+    // Add cinematic light
+    const three = this.simulator.threeView;
+    if (three) {
+      this.dynamicLight = new THREE.PointLight(0xffffff, 0.8, 10);
+      three.scene.add(this.dynamicLight);
+    }
+
     setTimeout(() => {
       if (this.simulator && this.simulator.threeView) {
         this.simulator.threeView.onWindowResize();
       }
     }, 100);
+
+    this._animate();
+  }
+
+  setCinematicMode(enabled) {
+    this.autoRotate = enabled;
+    if (!enabled && this.simulator && this.simulator.threeView && this.simulator.threeView.modelWrapper) {
+      // Reset rotation of the entire model wrapper
+      this.simulator.threeView.modelWrapper.rotation.set(0, 0, 0);
+    }
+  }
+
+  _animate() {
+    this.animationId = requestAnimationFrame(() => this._animate());
+    
+    const time = performance.now() * 0.001;
+
+    // Rotate model wrapper (contains meshes and lines)
+    if (this.autoRotate && this.simulator && this.simulator.threeView && this.simulator.threeView.modelWrapper) {
+      this.simulator.threeView.modelWrapper.rotation.y += 0.005;
+    }
+
+    // Orbit light
+    if (this.dynamicLight && this.simulator && this.simulator.threeView) {
+      this.dynamicLight.position.x = Math.sin(time * 0.8) * 3;
+      this.dynamicLight.position.z = Math.cos(time * 0.8) * 3;
+      this.dynamicLight.position.y = Math.sin(time * 0.6) * 1.5 + 1.5;
+    }
   }
 
   show() {

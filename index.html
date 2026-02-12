@@ -41,6 +41,7 @@
           <option value="60">60 Units (Pentakis Dodecahedron)</option>
           <option value="90">90 Units (Truncated Icosahedron)</option>
           <option value="120">120 Units (Rhombicosidodecahedron)</option>
+          <option value="270">270 Units (Geodesic Icosahedron)</option>
         </select>
       </div>
 
@@ -48,6 +49,14 @@
         <label for="fold-slider">Fold Amount</label>
         <input type="range" id="fold-slider" min="0" max="100" value="0">
       </div>
+
+      <div id="fx-group" style="margin-bottom: 15px; font-size: 0.9em;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" id="check-cinematic" style="margin-right: 10px;">
+          Enable Cinematic Effects
+        </label>
+      </div>
+
       <div id="nav-buttons">
         <button id="btn-prev" disabled>Previous</button>
         <button id="btn-next">Next</button>
