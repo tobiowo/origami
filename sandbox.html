@@ -5,39 +5,306 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sonobe Sandbox — Modular Origami</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #0d0d1a; color: white; font-family: sans-serif; }
-    #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; }
-    #ui * { pointer-events: auto; }
-    .btn {
-      background: #4488cc; color: white; border: none; padding: 10px 20px;
-      cursor: pointer; border-radius: 4px; font-weight: bold; margin-bottom: 10px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --panel-bg: #16213e;
+      --accent: #e94560;
+      --accent-hover: #ff6b81;
+      --text: #eee;
+      --text-muted: #aaa;
+      --border: #0f3460;
     }
-    .btn:hover { background: #336699; }
-    #help { position: absolute; bottom: 20px; left: 20px; font-size: 0.9em; opacity: 0.8; }
-    #back { position: absolute; top: 20px; right: 20px; color: #ccc; text-decoration: none; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ---- 3D Viewport ---- */
+    #viewport {
+      flex: 1;
+      position: relative;
+      background: #0d0d1a;
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ---- Side Panel ---- */
+    #panel {
+      width: 320px;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel-bg);
+      border-left: 2px solid var(--border);
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    /* ---- Header ---- */
+    #panel-header {
+      padding: 20px 20px 16px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    #panel-header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    #panel-header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ---- Color Swatches ---- */
+    .color-swatches {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .color-swatch.active {
+      border-color: white;
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #1a4a80;
+    }
+
+    .btn-small {
+      padding: 7px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+
+    /* ---- Preset Grid ---- */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* ---- Unit Counter ---- */
+    #unit-counter {
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    /* ---- Action Buttons ---- */
+    .action-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-row .btn {
+      flex: 1;
+    }
+
+    /* ---- Shortcuts ---- */
+    .shortcuts {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .shortcuts kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+
+    /* ---- Status Bar ---- */
+    #status-bar {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* ---- Transform mode indicator ---- */
+    #mode-indicator {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      pointer-events: none;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 768px) {
+      #app { flex-direction: column; }
+      #viewport { height: 55vh; flex: none; }
+      #panel {
+        width: 100%;
+        min-width: unset;
+        height: 45vh;
+        border-left: none;
+        border-top: 2px solid var(--border);
+      }
+    }
   </style>
 </head>
 <body>
 
-<div id="ui">
-  <button id="add-unit" class="btn">Add Sonobe Unit</button>
+<div id="app">
+  <div id="viewport">
+    <div id="container"></div>
+    <div id="mode-indicator">TRANSLATE</div>
+    <div id="status-bar">Click a unit to select it. Scroll to zoom.</div>
+  </div>
+
+  <div id="panel">
+    <div id="panel-header">
+      <h1>Sandbox</h1>
+      <p>Build your own Sonobe models</p>
+    </div>
+
+    <!-- Color Picker -->
+    <div class="panel-section">
+      <div class="section-title">Unit Color</div>
+      <div class="color-swatches" id="color-swatches"></div>
+    </div>
+
+    <!-- Add Unit -->
+    <div class="panel-section">
+      <button id="add-unit" class="btn btn-primary">Add Sonobe Unit</button>
+    </div>
+
+    <!-- Presets -->
+    <div class="panel-section">
+      <div class="section-title">Load Preset</div>
+      <div class="preset-grid">
+        <button class="btn btn-secondary btn-small" data-preset="3">Jewel (3)</button>
+        <button class="btn btn-secondary btn-small" data-preset="6">Cube (6)</button>
+        <button class="btn btn-secondary btn-small" data-preset="12">Octahedron (12)</button>
+        <button class="btn btn-secondary btn-small" data-preset="30">Icosahedron (30)</button>
+      </div>
+    </div>
+
+    <!-- Status & Actions -->
+    <div class="panel-section">
+      <div id="unit-counter">0 units</div>
+      <div class="action-row" style="margin-bottom: 8px;">
+        <button id="btn-undo" class="btn btn-secondary btn-small" disabled>Undo</button>
+        <button id="btn-clear" class="btn btn-secondary btn-small" disabled>Clear All</button>
+      </div>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="panel-section">
+      <div class="section-title">Controls</div>
+      <div class="shortcuts">
+        <kbd>T</kbd> Translate &nbsp; <kbd>R</kbd> Rotate<br>
+        <kbd>Del</kbd> Remove selected<br>
+        <kbd>Click</kbd> Select unit<br>
+        <kbd>Drag</kbd> Move/rotate via gizmo<br>
+        <kbd>Scroll</kbd> Zoom
+      </div>
+    </div>
+
+    <!-- Back Link -->
+    <div class="panel-section" style="text-align: center; margin-top: auto;">
+      <a href="index.html" style="color: var(--accent); text-decoration: none; font-size: 0.9em; font-weight: 600;">&larr; Back to Tutorial</a>
+    </div>
+  </div>
 </div>
-
-<div id="help">
-  <strong>Click</strong> to select a unit.<br>
-  <strong>Drag gizmo</strong> to move/rotate.<br>
-  <strong>T</strong>: Move | <strong>R</strong>: Rotate | <strong>Delete</strong>: Remove<br>
-  <strong>Left Drag (empty space)</strong>: Rotate View
-</div>
-
-<a id="back" href="index.html">← Back to Tutorial</a>
-
-<div id="container"></div>
 
 <!-- Dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r110/three.min.js"></script>
 <script src="js/lib/trackballcontrols-no-scroll.js"></script>
-<!-- TransformControls for v110 -->
 <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r110/examples/js/controls/TransformControls.js"></script>
 
 <script type="module" src="js/sandbox.js"></script>
