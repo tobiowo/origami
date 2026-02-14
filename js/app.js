@@ -93,7 +93,7 @@ class App {
     this.els.modelSelector.addEventListener('change', async (e) => {
       const type = e.target.value;
       if (type === 'custom') {
-        await this.assemblyView.loadCustomOBJ('./references/beetle.obj');
+        await this.assemblyView.loadCustomOBJ('./beetle.obj');
       } else {
         this.assemblyView.setModelType(parseInt(type));
       }
