@@ -119,6 +119,13 @@ export class AssemblyView {
     this.unitCount = 0;
     this.autoRotate = false;
     this.dynamicLight = null;
+
+    // Explode animation
+    this.explodeProgress = 0;
+    this.explodeTarget = 0;
+    this.explodeSpeed = 2.5;
+    this.explodeScale = 2.5;
+    this._lastTime = 0;
   }
 
   init(containerEl) {
@@ -176,8 +183,15 @@ export class AssemblyView {
     this.setUnitCount(this.unitCount);
   }
 
+  toggleExplode() {
+    this.explodeTarget = this.explodeTarget === 0 ? 1 : 0;
+    return this.explodeTarget === 1; // returns true if now exploding
+  }
+
   setUnitCount(count) {
     this.unitCount = count;
+    this.explodeProgress = 0;
+    this.explodeTarget = 0;
     if (!this.ready) return;
 
     this.units.forEach(u => this.unitGroup.remove(u));
@@ -210,9 +224,11 @@ export class AssemblyView {
 
   _animate() {
     this.animationId = requestAnimationFrame((t) => this._animate(t));
-    
+
     if (this.ready) {
       const time = performance.now() * 0.001;
+      const dt = this._lastTime ? time - this._lastTime : 0.016;
+      this._lastTime = time;
 
       if (this.autoRotate && this.unitGroup) {
         this.unitGroup.rotation.y += 0.003;
@@ -224,9 +240,38 @@ export class AssemblyView {
         this.dynamicLight.position.y = Math.sin(time * 0.5) * 2 + 2;
       }
 
+      // Explode/implode animation
+      if (this.explodeProgress !== this.explodeTarget) {
+        const dir = this.explodeTarget > this.explodeProgress ? 1 : -1;
+        this.explodeProgress += dir * this.explodeSpeed * dt;
+        this.explodeProgress = Math.max(0, Math.min(1, this.explodeProgress));
+        // Snap to target when close
+        if (Math.abs(this.explodeProgress - this.explodeTarget) < 0.005) {
+          this.explodeProgress = this.explodeTarget;
+        }
+        this._applyExplode();
+      }
+
       if (this.controls) this.controls.update();
       if (this.renderer && this.scene && this.camera) {
         this.renderer.render(this.scene, this.camera);
+      }
+    }
+  }
+
+  _applyExplode() {
+    // Ease in/out cubic
+    const p = this.explodeProgress;
+    const t = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+    for (const unit of this.units) {
+      const c = unit.userData.centroid;
+      if (c) {
+        unit.position.set(
+          c.x * t * this.explodeScale,
+          c.y * t * this.explodeScale,
+          c.z * t * this.explodeScale
+        );
       }
     }
   }
@@ -259,13 +304,22 @@ export class AssemblyView {
     // A true Sonobe unit has 4 parts: 2 body triangles, 2 tab triangles.
     // The "body" is the central square folded into 2 triangles.
     // The "tabs" are the triangular ends.
-    [def.b1, def.b2, def.t1, def.t2].forEach(verts => {
-      if (!verts) return;
+    // Compute centroid from all vertices for explode animation
+    const allVerts = [def.b1, def.b2, def.t1, def.t2].filter(Boolean);
+    const cx = new THREE.Vector3();
+    let count = 0;
+    allVerts.forEach(tri => {
+      tri.forEach(v => { cx.x += v[0]; cx.y += v[1]; cx.z += v[2]; count++; });
+    });
+    cx.divideScalar(count);
+    group.userData.centroid = cx;
+
+    allVerts.forEach(verts => {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts.flat()), 3));
       geo.setIndex([0, 1, 2]);
       geo.computeVertexNormals();
-      
+
       const mesh = new THREE.Mesh(geo, mat);
       group.add(mesh);
       group.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));

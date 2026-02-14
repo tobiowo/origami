@@ -26,6 +26,8 @@ class App {
       modelSelector: document.getElementById('model-selector'),
       modelSelectorGroup: document.getElementById('model-selector-group'),
       checkCinematic: document.getElementById('check-cinematic'),
+      btnExplode: document.getElementById('btn-explode'),
+      explodeGroup: document.getElementById('explode-group'),
       simulatorContainer: document.getElementById('simulator-container'),
       assemblyContainer: document.getElementById('assembly-container'),
       loadingOverlay: document.getElementById('loading-overlay'),
@@ -105,6 +107,11 @@ class App {
       this.assemblyView.setCinematicMode(enabled);
     });
 
+    this.els.btnExplode.addEventListener('click', () => {
+      const exploding = this.assemblyView.toggleExplode();
+      this.els.btnExplode.textContent = exploding ? 'Collapse View' : 'Explode View';
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') this.prevStep();
       if (e.key === 'ArrowRight') this.nextStep();
@@ -150,6 +157,7 @@ class App {
     this.foldingView.show();
     this.assemblyView.hide();
     this.els.sliderGroup.style.display = 'none';
+    this.els.explodeGroup.style.display = 'none';
 
     if (!this.animationSequence) {
       this.animationSequence = createSonobeAnimationSequence(window.ear);
@@ -209,6 +217,7 @@ class App {
   _showSimulator(step) {
     this.foldingView.show();
     this.assemblyView.hide();
+    this.els.explodeGroup.style.display = 'none';
 
     if (step.sliderEnabled) {
       this.els.sliderGroup.style.display = 'block';
@@ -236,6 +245,8 @@ class App {
   _showAssembly(step) {
     this.foldingView.hide();
     this.els.sliderGroup.style.display = 'none';
+    this.els.explodeGroup.style.display = 'block';
+    this.els.btnExplode.textContent = 'Explode View';
     this.assemblyView.show();
     this.assemblyView.setUnitCount(step.unitCount);
   }
