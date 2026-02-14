@@ -867,6 +867,11 @@ export class AssemblyView {
 
     return buildStellatedUnits(verts, faces, S, 0.015);
   }
+
+  destroy() {
+    window.removeEventListener('resize', this._onResize);
+    if (this.animationId) cancelAnimationFrame(this.animationId);
+  }
 }
 
 const UNIT_COLORS = [
