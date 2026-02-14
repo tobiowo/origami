@@ -330,6 +330,7 @@ export class AssemblyView {
 
   _getUnitDefs() {
     switch(this.modelType) {
+      case 2:   return this._generateSquare();
       case 3:   return this._generateJewel();
       case 12:  return this._generateOctahedron();
       case 30:  return this._generateIcosahedron();
@@ -339,6 +340,45 @@ export class AssemblyView {
       case 270: return this._generateGeodesicIcosahedron270();
       default:  return this._generateCube();
     }
+  }
+
+  _generateSquare() {
+    // 2-unit Sonobe "square": two units interlocked flat, rotated 90° to each other.
+    // Each unit is a rectangle (2 body triangles) with tabs folded flat underneath.
+    const S = 1.0;          // half-size of the square
+    const r = 0.02;         // slight ridge lift so the two layers are visible
+    const tabLeg = S;       // tab length = half the unit width
+
+    // Unit 1: horizontal rectangle, body on top (y = +r)
+    // Runs along X axis, centered at origin
+    const A1 = [-S, r, -S/2], B1 = [S, r, -S/2];
+    const C1 = [S, r, S/2],   D1 = [-S, r, S/2];
+    // Tabs fold flat underneath (y = -r)
+    const tipA1 = [-S, -r, -S/2 - tabLeg]; // tab from edge A1-B1 going -Z
+    const tipD1 = [-S, -r, S/2 + tabLeg];   // tab from edge D1-C1 going +Z
+
+    // Unit 2: vertical rectangle, body slightly below (y = -r)
+    // Runs along Z axis, rotated 90°
+    const A2 = [-S/2, -r, -S], B2 = [-S/2, -r, S];
+    const C2 = [S/2, -r, S],   D2 = [S/2, -r, -S];
+    // Tabs fold flat on top (y = +r)
+    const tipA2 = [-S/2 - tabLeg, r, -S]; // tab going -X
+    const tipD2 = [S/2 + tabLeg, r, -S];  // tab going +X
+
+    return [
+      {
+        b1: [A1, B1, C1],
+        b2: [A1, C1, D1],
+        t1: [A1, B1, tipA1],
+        t2: [D1, C1, tipD1],
+      },
+      {
+        b1: [A2, B2, C2],
+        b2: [A2, C2, D2],
+        t1: [A2, B2, tipA2],
+        t2: [D2, C2, tipD2],
+      },
+    ];
   }
 
   _generateCube() {

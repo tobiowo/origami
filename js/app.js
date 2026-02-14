@@ -1,6 +1,6 @@
 import { steps as staticSteps } from './steps.js';
 import { FoldingView } from './folding-view.js';
-import { AssemblyView } from './assembly-view.js';
+import { AssemblyView } from './assembly-view-v2.js';
 import { createSonobeFOLD } from './sonobe.js';
 import { createSonobeAnimationSequence } from './sonobe-animation.js';
 
@@ -246,7 +246,7 @@ class App {
     this.foldingView.hide();
     this.els.sliderGroup.style.display = 'none';
     this.els.explodeGroup.style.display = 'block';
-    this.els.btnExplode.textContent = 'Explode View';
+    this.els.btnExplode.textContent = this.assemblyView.explodeTarget === 1 ? 'Collapse View' : 'Explode View';
     this.assemblyView.show();
     this.assemblyView.setUnitCount(step.unitCount);
   }
