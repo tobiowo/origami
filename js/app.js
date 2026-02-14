@@ -90,9 +90,13 @@ class App {
       }
     });
 
-    this.els.modelSelector.addEventListener('change', (e) => {
-      const type = parseInt(e.target.value);
-      this.assemblyView.setModelType(type);
+    this.els.modelSelector.addEventListener('change', async (e) => {
+      const type = e.target.value;
+      if (type === 'custom') {
+        await this.assemblyView.loadCustomOBJ('./references/beetle.obj');
+      } else {
+        this.assemblyView.setModelType(parseInt(type));
+      }
       this._refreshSteps();
       // If we are already in assembly mode, stay at the first assembly step
       if (this.currentStep >= 7) {

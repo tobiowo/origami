@@ -4,6 +4,8 @@
  * dual-layered body triangles and offset tabs.
  */
 
+import { OBJSonobeConverter } from './obj-sonobe-converter.js';
+
 // ── Shared vector math helpers ──────────────────────────────────────
 const V3 = {
   mid:   (a, b) => a.map((v, i) => (v + b[i]) / 2),
@@ -110,6 +112,7 @@ export class AssemblyView {
     this.unitCount = 0;
     this.autoRotate = false;
     this.dynamicLight = null;
+    this.customUnits = [];
 
     this.explodeProgress = 0;
     this.explodeTarget = 0;
@@ -127,7 +130,7 @@ export class AssemblyView {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0a12);
 
-    this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
     this.camera.position.set(3.5, 3, 3.5);
     this.camera.lookAt(0, 0, 0);
 
@@ -165,8 +168,33 @@ export class AssemblyView {
   }
 
   setModelType(type) {
-    this.modelType = parseInt(type);
+    this.modelType = type;
     this.setUnitCount(this.unitCount);
+  }
+
+  async loadCustomOBJ(url) {
+    try {
+      const response = await fetch(url);
+      const text = await response.text();
+      const { verts, faces } = OBJSonobeConverter.parse(text);
+      
+      // Calculate scale to fit in view
+      let maxDist = 0;
+      verts.forEach(v => {
+        const d = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+        if (d > maxDist) maxDist = d;
+      });
+      const normScale = 2.0 / maxDist;
+      const scaledVerts = verts.map(v => v.map(c => c * normScale));
+
+      this.customUnits = OBJSonobeConverter.buildUnitsFromMesh(scaledVerts, faces, 1.0, 0.02);
+      this.modelType = 'custom';
+      this.setUnitCount(this.customUnits.length);
+      return this.customUnits.length;
+    } catch (e) {
+      console.error("Failed to load OBJ:", e);
+      return 0;
+    }
   }
 
   toggleExplode() {
@@ -363,7 +391,9 @@ export class AssemblyView {
   }
 
   _getUnitDefs() {
-    switch(this.modelType) {
+    if (this.modelType === 'custom') return this.customUnits;
+    
+    switch(parseInt(this.modelType)) {
       case 2:   return this._generateSquare();
       case 3:   return this._generateJewel();
       case 12:  return this._generateOctahedron();
