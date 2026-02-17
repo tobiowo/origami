@@ -302,12 +302,15 @@
   </div>
 </div>
 
-<!-- Dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="js/lib/trackballcontrols-no-scroll.js"></script>
-<script src="js/lib/TransformControls.js"></script>
-
-<script type="module" src="js/sandbox.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/sandbox-main.js"></script>
 
 </body>
 </html>

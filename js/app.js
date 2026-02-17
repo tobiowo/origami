@@ -252,7 +252,15 @@ class App {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   const app = new App();
   app.start();
-});
+}
+
+// Support both direct script loading (DOMContentLoaded not yet fired)
+// and dynamic import from bootstrap (DOMContentLoaded already fired)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

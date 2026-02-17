@@ -1,6 +1,6 @@
 import { SandboxView, UNIT_COLORS } from './sandbox-view.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   const sandbox = new SandboxView();
   const container = document.getElementById('container');
 
@@ -72,4 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Start with one unit
   sandbox.addUnit();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

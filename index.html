@@ -73,17 +73,15 @@
   </div>
 </div>
 
-<!-- Dependencies (order matters) -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="js/lib/trackballcontrols-no-scroll.js"></script>
-<script src="js/lib/fold.js"></script>
-<script src="js/lib/earcut.min.js"></script>
-<script src="js/lib/SVGLoader.js"></script>
-<script src="js/lib/origami-simulator.js"></script>
-<script src="js/lib/rabbit-ear.js"></script>
-
-<!-- App modules -->
-<script type="module" src="js/app.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
 
 </body>
 </html>

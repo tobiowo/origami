@@ -86,7 +86,8 @@ export class SandboxView {
         this._hideSnapHelpers();
       }
     });
-    this.scene.add(this.transformControls);
+    // r182+: TransformControls no longer extends Object3D — add its helper
+    this.scene.add(this.transformControls.getHelper());
 
     // Lighting
     this.scene.add(new THREE.AmbientLight(0x404060, 0.8));
