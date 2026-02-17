@@ -1801,12 +1801,12 @@
       transparent: true,
       opacity: 0.3
     });
-    var hingeLines = new THREE$4.LineSegments(null, lineMaterial);
-    var mountainLines = new THREE$4.LineSegments(null, lineMaterial);
-    var valleyLines = new THREE$4.LineSegments(null, lineMaterial);
-    var cutLines = new THREE$4.LineSegments(null, lineMaterial);
-    var facetLines = new THREE$4.LineSegments(null, lineMaterial);
-    var borderLines = new THREE$4.LineSegments(null, lineMaterial);
+    var hingeLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
+    var mountainLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
+    var valleyLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
+    var cutLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
+    var facetLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
+    var borderLines = new THREE$4.LineSegments(new THREE$4.BufferGeometry(), lineMaterial);
     var lines = {
       U: hingeLines,
       M: mountainLines,
@@ -1828,7 +1828,7 @@
       geometry = new THREE$4.BufferGeometry();
       frontside.geometry = geometry;
       backside.geometry = geometry;
-      geometry.dynamic = true;
+      // geometry.dynamic removed (deprecated in modern Three.js)
       Object.values(lines).forEach(function (line) {
         var lineGeometry = line.geometry;
 
@@ -1867,7 +1867,7 @@
 
       if (globals.colorMode === "axialStrain") {
         material = new THREE$4.MeshBasicMaterial({
-          vertexColors: THREE$4.VertexColors,
+          vertexColors: true,
           side: THREE$4.DoubleSide,
           polygonOffset: true,
           polygonOffsetFactor: polygonOffset,
@@ -2099,14 +2099,14 @@
           uIndices[_i11] = indicesArray[_i11];
         }
 
-        lines[key].geometry.addAttribute("position", positionsAttribute);
+        lines[key].geometry.setAttribute("position", positionsAttribute);
         lines[key].geometry.setIndex(new THREE$4.BufferAttribute(uIndices, 1));
         lines[key].geometry.computeBoundingBox();
         lines[key].geometry.computeBoundingSphere();
         lines[key].geometry.center();
       });
-      geometry.addAttribute("position", positionsAttribute);
-      geometry.addAttribute("color", new THREE$4.BufferAttribute(colors, 3));
+      geometry.setAttribute("position", positionsAttribute);
+      geometry.setAttribute("color", new THREE$4.BufferAttribute(colors, 3));
       geometry.setIndex(new THREE$4.BufferAttribute(indices, 1));
       geometry.computeVertexNormals();
       geometry.computeBoundingBox();

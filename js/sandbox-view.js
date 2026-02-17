@@ -59,6 +59,7 @@ export class SandboxView {
 
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(window.devicePixelRatio);
     containerEl.appendChild(this.renderer.domElement);
@@ -530,7 +531,7 @@ export class SandboxView {
   _showSnapHelpers(excludeUnit) {
     this._hideSnapHelpers();
 
-    const helperGeo = new THREE.SphereBufferGeometry(0.08, 8, 6);
+    const helperGeo = new THREE.SphereGeometry(0.08, 8, 6);
     const pocketMat = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       transparent: true,

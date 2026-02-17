@@ -132,6 +132,7 @@ export class AssemblyView {
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(window.devicePixelRatio);
     containerEl.appendChild(this.renderer.domElement);
