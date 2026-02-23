@@ -4,11 +4,18 @@ An interactive 3D guide for folding and assembling modular Sonobe origami polyhe
 
 ## Overview
 
-This application provides a comprehensive tutorial for creating modular origami using Sonobe units. It features:
+This application provides a comprehensive tutorial for creating modular origami. It currently supports:
+
+### Sonobe Units
 - **Introductory Animation**: A 3D preview of the full folding sequence.
 - **Interactive Folding Simulator**: A step-by-step guide with real-time 3D simulation for folding a single unit.
-- **Dynamic Assembly View**: Accurate 3D visualizations for assembling 3, 6, 12, or 30 units into various polyhedra (Toshie's Jewel, Cube, Octahedron, and Icosahedron).
-- **Sandbox Mode**: A free-form space to add, move, and rotate Sonobe units to create your own modular designs.
+- **Dynamic Assembly View**: Accurate 3D visualizations for assembling 2 to 270 units into various polyhedra (Jewels, Cubes, Geodesic Spheres).
+- **Sandbox Mode**: A free-form space to add, move, and rotate units to create your own modular designs.
+
+### Golden Venture (3D Origami)
+- **Interactive Folding Tutorial**: Step-by-step guide to folding the triangular GV unit.
+- **Assembly Viewer**: Row-based 3D visualization showing how units interlock in rings.
+- **Layout Importer**: Support for importing complex models (swans, vases, etc.) via Base64 strings from the Golden Venture Art Designer.
 
 ## Tech Stack
 
@@ -29,7 +36,8 @@ Then open your browser to `http://localhost:3000`.
 
 ## Project Structure
 
-- `index.html`: Main entry point (Tutorial).
+- `index.html`: Main entry point (Sonobe Tutorial).
+- `golden-venture.html`: Golden Venture (3D Origami) tutorial and viewer.
 - `sandbox.html`: Modular assembly sandbox.
 - `animation-test.html`: Standalone folding animation prototype.
 - `js/`: Application modules and logic.
