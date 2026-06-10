@@ -6,7 +6,7 @@ import { createSonobeAnimationSequence } from './sonobe-animation.js';
 
 class App {
   constructor() {
-    this.foldingSteps = staticSteps.slice(0, 7); // First 7 steps are folding/overview
+    this.foldingSteps = staticSteps; // overview + folding; assembly steps are generated
     this.currentStep = 0;
     this.steps = [];
     this.animationSequence = null;
@@ -95,8 +95,8 @@ class App {
       this.assemblyView.setModelType(type);
       this._refreshSteps();
       // If we are already in assembly mode, stay at the first assembly step
-      if (this.currentStep >= 7) {
-        this.currentStep = 7;
+      if (this.currentStep >= this.foldingSteps.length) {
+        this.currentStep = this.foldingSteps.length;
       }
       this._renderStep();
     });
@@ -141,8 +141,9 @@ class App {
     this.els.btnNext.disabled = this.currentStep === this.steps.length - 1;
     this.els.btnNext.textContent = this.currentStep === this.steps.length - 1 ? 'Finish' : 'Next';
 
-    // Show model selector only for assembly steps (Step 8+)
-    this.els.modelSelectorGroup.style.display = this.currentStep >= 7 ? 'block' : 'none';
+    // Show model selector only for assembly steps
+    this.els.modelSelectorGroup.style.display =
+      this.currentStep >= this.foldingSteps.length ? 'block' : 'none';
 
     if (step.renderer === 'animation') {
       this._showAnimation(step);

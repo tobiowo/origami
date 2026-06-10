@@ -24,6 +24,19 @@ const { mid, add, sub, scl, dot, cross, len, normalize, add3 } = V3;
 
 const POCKET_GAP = 0.012; // Gap between outer and inner pocket layers
 
+/**
+ * A tab tucked into a neighboring unit's pocket: it lies just beneath the
+ * neighbor's body triangle [A, P, apex], covering the half of it nearest A
+ * (the pocket runs along the altitude from the apex to the base midpoint).
+ */
+function tuckedTab(A, apex, P) {
+  const n = normalize(cross(sub(P, A), sub(apex, A)));
+  const cent = scl(add3(A, P, apex), 1 / 3);
+  const out = dot(n, cent) > 0 ? n : scl(n, -1);
+  const inset = scl(out, -POCKET_GAP * 0.6);
+  return [add(A, inset), add(apex, inset), add(mid(A, P), inset)];
+}
+
 // ── Helper: build stellated polyhedron units from faces + vertices ───
 function buildStellatedUnits(verts, faces, scale, ridgeFrac) {
   const faceEdge = len(sub(verts[faces[0][0]], verts[faces[0][1]]));
@@ -62,7 +75,14 @@ function buildStellatedUnits(verts, faces, scale, ridgeFrac) {
   });
 
   const ridge = scale * ridgeFrac;
-  const tabLeg = faceEdge / 2;
+
+  // The vertex adjacent to `vi` in face `f`, other than `skip`.
+  const faceNeighbor = (f, vi, skip) => {
+    const k = f.indexOf(vi);
+    const prev = f[(k - 1 + f.length) % f.length];
+    const next = f[(k + 1) % f.length];
+    return prev === skip ? next : prev;
+  };
 
   return edgeList.map(([ei, ej], idx) => {
     const A = verts[ei], B = verts[ej];
@@ -82,14 +102,12 @@ function buildStellatedUnits(verts, faces, scale, ridgeFrac) {
     const b1 = [A_r, B_r, apex1];
     const b2 = [A_r, B_r, apex2];
 
-    // Tabs: right isosceles triangles folding inward
-    const fn1out = normalize(cent1);
-    const fn2out = normalize(cent2);
-    const tipA = sub(A, scl(fn1out, tabLeg));
-    const tipB = sub(B, scl(fn2out, tabLeg));
-
-    const t1 = [A_r, apex1, tipA];
-    const t2 = [B_r, apex2, tipB];
+    // Tabs tuck under the neighboring units' body triangles: on each
+    // pyramid, the lateral face sharing this unit's corner.
+    const P1 = verts[faceNeighbor(faces[fi1], ei, ej)];
+    const P2 = verts[faceNeighbor(faces[fi2], ej, ei)];
+    const t1 = tuckedTab(A, apex1, P1);
+    const t2 = tuckedTab(B, apex2, P2);
 
     return { b1, b2, t1, t2 };
   });
@@ -114,7 +132,11 @@ export class AssemblyView {
     this.explodeProgress = 0;
     this.explodeTarget = 0;
     this.explodeSpeed = 2.5;
-    this.explodeScale = 2.5;
+    // Displacement per unit is explodeScale x its centroid distance, so the
+    // exploded model spans ~(1 + explodeScale) x its radius. The camera sits
+    // ~5.8 away with a 50° FOV (~2.7 visible half-height), so keep the
+    // largest models (icosahedron apexes ~1.6) within that when exploded.
+    this.explodeScale = 0.6;
     this._lastTime = 0;
   }
 
@@ -330,24 +352,15 @@ export class AssemblyView {
       group.add(new THREE.Mesh(geoInner, innerMat));
     });
 
-    // Tab Triangles (Flaps)
+    // Tab Triangles (Flaps) — generators provide them already inset into
+    // the neighboring unit's pocket gap.
     [def.t1, def.t2].forEach(verts => {
-      const v0 = new THREE.Vector3(...verts[0]);
-      const v1 = new THREE.Vector3(...verts[1]);
-      const v2 = new THREE.Vector3(...verts[2]);
-      const normal = new THREE.Vector3().crossVectors(v1.clone().sub(v0), v2.clone().sub(v0)).normalize();
-      
-      const centerDir = new THREE.Vector3().addVectors(v0, v1).add(v2).divideScalar(3).normalize();
-      if (normal.dot(centerDir) > 0) normal.multiplyScalar(-1);
+      const geo = this._createTriGeo(verts);
 
-      // Shift tab deeper into the pocket gap (0.7 instead of 0.5 to ensure it's behind the outer layer)
-      const shiftedVerts = verts.map(v => add(v, [normal.x * POCKET_GAP * 0.7, normal.y * POCKET_GAP * 0.7, normal.z * POCKET_GAP * 0.7]));
-      const geo = this._createTriGeo(shiftedVerts);
-      
       // Use a tab material that is pushed back in depth
       const tabMat = mat.clone();
       tabMat.polygonOffsetFactor = 1.8;
-      
+
       group.add(new THREE.Mesh(geo, tabMat));
       group.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     });
@@ -410,26 +423,15 @@ export class AssemblyView {
   }
 
   _generateCube() {
+    // A 6-unit Sonobe cube is the stellated tetrahedron: the right-isosceles
+    // pyramids over a tetrahedron's four faces complete the cube exactly
+    // (the 4 apices plus the 4 tetrahedron vertices are the cube's corners).
+    // One unit per tetrahedron edge; each cube face is split along its
+    // diagonal between two different units, as in the real assembly.
     const S = 0.7;
-    const C = [[-S,-S,-S], [S,-S,-S], [S,S,-S], [-S,S,-S], [-S,-S,S], [S,-S,S], [S,S,S], [-S,S,S]];
-    const r = S * 0.12;
-    const faces = [
-      { diag: [5,7], others: [4,6], normal: [0,0,1]  },
-      { diag: [0,2], others: [1,3], normal: [0,0,-1] },
-      { diag: [2,7], others: [3,6], normal: [0,1,0]  },
-      { diag: [0,5], others: [1,4], normal: [0,-1,0] },
-      { diag: [2,5], others: [1,6], normal: [1,0,0]  },
-      { diag: [0,7], others: [3,4], normal: [-1,0,0] },
-    ];
-    return faces.map(f => {
-      const A = C[f.diag[0]], B = C[f.diag[1]], P = C[f.others[0]], Q = C[f.others[1]], n = f.normal;
-      const A_r = add(A, scl(n, r)), B_r = add(B, scl(n, r)), tabLeg = S * 2;
-      return {
-        b1: [A_r, B_r, P], b2: [A_r, B_r, Q],
-        t1: [add(A, scl(n, r)), P, sub(A, scl(n, tabLeg))],
-        t2: [add(B, scl(n, r)), Q, sub(B, scl(n, tabLeg))],
-      };
-    });
+    const verts = [[S, S, S], [S, -S, -S], [-S, S, -S], [-S, -S, S]];
+    const faces = [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]];
+    return buildStellatedUnits(verts, faces, S, 0.06);
   }
 
   _generateJewel() {
@@ -442,12 +444,15 @@ export class AssemblyView {
       const edgeMid = mid(A, B);
       const out = dot(outward, edgeMid) > 0 ? outward : scl(outward, -1);
       const A_r = add(A, scl(out, ridge)), B_r = add(B, scl(out, ridge));
-      const fn1 = normalize(cross(sub(Top, A), sub(B, A))), cent1 = scl(add3(A, B, Top), 1/3);
-      const fn1out = dot(fn1, cent1) > 0 ? fn1 : scl(fn1, -1);
-      const fn2 = normalize(cross(sub(Bot, B), sub(A, B))), cent2 = scl(add3(A, B, Bot), 1/3);
-      const fn2out = dot(fn2, cent2) > 0 ? fn2 : scl(fn2, -1);
-      const tabLeg = a / 2;
-      return { b1: [A_r, B_r, Top], b2: [A_r, B_r, Bot], t1: [A_r, Top, sub(A, scl(fn1out, tabLeg))], t2: [B_r, Bot, sub(B, scl(fn2out, tabLeg))] };
+      // Tabs tuck under the adjacent units' faces that share vertices A / B
+      // (the third equator vertex belongs to both of those faces).
+      const P = E[3 - i - j];
+      return {
+        b1: [A_r, B_r, Top],
+        b2: [A_r, B_r, Bot],
+        t1: tuckedTab(A, Top, P),
+        t2: tuckedTab(B, Bot, P),
+      };
     });
   }
 

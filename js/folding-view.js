@@ -361,6 +361,20 @@ export class FoldingView {
   updateStepState(stepFunc, percent) {
     if (!this.simulator) return;
 
+    // Step 4 animates only the tab creases while the center V stays put,
+    // so the slider rebuilds the pattern with percent-scaled tab angles
+    // instead of driving the global foldPercent multiplier (which would
+    // unfold the center too). The solver's high damping converges the
+    // reloaded mesh in about a frame.
+    if (stepFunc === 'step4') {
+      this.currentStepFunc = stepFunc;
+      import('./sonobe.js').then(m => {
+        this.loadPattern(m.getSonobeForStep(stepFunc, percent));
+        this.setFoldPercent(1);
+      });
+      return;
+    }
+
     if (this.currentStepFunc !== stepFunc) {
       this.currentStepFunc = stepFunc;
       import('./sonobe.js').then(m => {

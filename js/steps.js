@@ -1,6 +1,8 @@
 /**
- * Step definitions for the Sonobe cube tutorial.
+ * Step definitions for the Sonobe unit folding tutorial.
  * Each step has: title, description (HTML), renderer type, and config.
+ * Assembly steps are generated dynamically in app.js from the selected
+ * model's unit count.
  */
 
 export const steps = [
@@ -46,10 +48,10 @@ export const steps = [
     stepFunc: "step2",
   },
   {
-    title: "Step 3: Fold in Half",
+    title: "Step 3: Fold into a V",
     description: `
-      <p>Use the <strong>slider</strong> to fold the unit in half along its long center line.</p>
-      <p>This gives the unit its final 3D V-shape that wraps around cube edges.</p>
+      <p>Use the <strong>slider</strong> to bend the parallelogram along its center crease.</p>
+      <p>Stop before it folds flat — this V-shape is how the unit wraps around the edges of the finished model.</p>
     `,
     renderer: "simulator",
     foldPercent: null,
@@ -57,10 +59,10 @@ export const steps = [
     stepFunc: "step3",
   },
   {
-    title: "Step 4: Fold in Half & Create Tabs",
+    title: "Step 4: Fold the Tabs Back",
     description: `
-      <p>Use the <strong>slider</strong> to fold the parallelogram in half along its long axis while also folding the triangular tips back at each corner.</p>
-      <p>The center fold creates the V-shape, and the corner folds create the <strong>tabs</strong> that interlock with other units.</p>
+      <p>With the V in place, use the <strong>slider</strong> to fold the two triangular tips back at each corner.</p>
+      <p>These are the <strong>tabs</strong> that slide into neighboring units during assembly.</p>
     `,
     renderer: "simulator",
     foldPercent: null,
@@ -73,66 +75,12 @@ export const steps = [
       <p>Here is your fully folded Sonobe unit! This versatile module is the building block for many modular origami shapes.</p>
       <p>It features:</p>
       <p>• <strong>Two triangular tabs</strong> that insert into neighboring units.<br>
-      • <strong>Two pockets</strong> that receive tabs from neighbors.</p>
+      • <strong>Two pockets</strong> — the openings under the body folds where neighboring tabs slide in.</p>
       <p>The number of units you'll need depends on the shape you want to build (3 for a jewel, 6 for a cube, 12 for an octahedron, or 30 for an icosahedron).</p>
     `,
     renderer: "simulator",
     foldPercent: 1,
     sliderEnabled: false,
     stepFunc: "step4",
-  },
-
-  // --- Assembly steps ---
-  {
-    title: "First Unit",
-    description: `
-      <p>Place the first Sonobe unit as the foundation. This <strong style="color:#e74c3c">red unit</strong> will form one face of the cube.</p>
-      <p><strong>Click and drag</strong> to rotate the view. <strong>Scroll</strong> to zoom.</p>
-    `,
-    renderer: "assembly",
-    unitCount: 1,
-  },
-  {
-    title: "Add Second Unit",
-    description: `
-      <p>The <strong style="color:#3498db">blue unit</strong> connects perpendicular to the first. Its tab slides into the red unit's pocket.</p>
-      <p>Notice how the two units form an "L" shape.</p>
-    `,
-    renderer: "assembly",
-    unitCount: 2,
-  },
-  {
-    title: "Add Third Unit",
-    description: `
-      <p>The <strong style="color:#2ecc71">green unit</strong> completes the first corner. Three units meet at each vertex of the cube.</p>
-    `,
-    renderer: "assembly",
-    unitCount: 3,
-  },
-  {
-    title: "Add Fourth Unit",
-    description: `
-      <p>The <strong style="color:#f39c12">orange unit</strong> starts forming the opposite side. Halfway there!</p>
-    `,
-    renderer: "assembly",
-    unitCount: 4,
-  },
-  {
-    title: "Add Fifth Unit",
-    description: `
-      <p>The <strong style="color:#9b59b6">purple unit</strong> connects more faces. The cube shape is becoming clear.</p>
-    `,
-    renderer: "assembly",
-    unitCount: 5,
-  },
-  {
-    title: "Complete Cube!",
-    description: `
-      <p>The final <strong style="color:#1abc9c">teal unit</strong> closes the cube. All 6 units interlock!</p>
-      <p>Congratulations! You've assembled a <strong>Sonobe cube</strong>. Rotate it to admire your work.</p>
-      <p>This same module can build other shapes: octahedra (12 units), icosahedra (30 units), and more.</p>
-    `,
-    renderer: "assembly",
-    unitCount: 6,
   },
 ];
