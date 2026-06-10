@@ -1,0 +1,12 @@
+{
+  "name": "origami-sonobe-explorer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "start": "npx serve ."
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

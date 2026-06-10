@@ -1,9 +1,18 @@
 /**
  * Logic for assembling Golden Venture units into 3D models.
- * Improved with Phase 3: Multi-Row Stacking + Curvature.
+ *
+ * Rows are rings of interlocked units: each ring's circumference is the row
+ * count times the unit base width (so neighbors touch), and successive rows
+ * nest roughly half a unit height into the row below (points into pockets),
+ * offset half a pitch in the classic brick pattern. The wall tilt at each
+ * row follows the slope of the radius profile, so expanding/contracting row
+ * counts produce vases and spheres.
+ *
+ * Parts whose rows are all 1-2 units wide (swan necks, tails) are rendered
+ * as curved chains of stacked units instead of degenerate rings.
  */
 
-import { createGVUnitGeometry } from './gv-unit-mesh.js';
+import { createGVUnitGeometry, GV_UNIT } from './gv-unit-mesh.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export class GVAssemblyView {
@@ -15,15 +24,15 @@ export class GVAssemblyView {
     this.controls = null;
     this.unitGroup = new THREE.Group();
     this.ready = false;
-    
+
     this.unitGeo = null;
     this.unitMat = null;
     this.instancedMesh = null;
     this.autoRotate = false;
-    
-    // Constants for unit scaling and stacking
-    this.UNIT_WIDTH = 0.42; // Physical width of a unit in the ring
-    this.ROW_HEIGHT = 0.38; // Vertical height of one interlocked row
+
+    // Stacking constants
+    this.UNIT_WIDTH = GV_UNIT.WIDTH * 0.96; // circumference per unit (slight squeeze)
+    this.ROW_HEIGHT = GV_UNIT.HEIGHT * 0.55; // vertical stride: rows nest into each other
   }
 
   init(containerEl) {
@@ -60,24 +69,23 @@ export class GVAssemblyView {
       this.renderer.domElement.focus();
     });
     this.renderer.domElement.tabIndex = 0;
-    
-    this.scene.add(new THREE.AmbientLight(0x404060, 0.9));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+
+    this.scene.add(new THREE.AmbientLight(0x404060, 0.9 * Math.PI));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7 * Math.PI);
     dirLight.position.set(5, 10, 5);
     this.scene.add(dirLight);
 
-    const backLight = new THREE.DirectionalLight(0x4488cc, 0.3);
+    const backLight = new THREE.DirectionalLight(0x4488cc, 0.3 * Math.PI);
     backLight.position.set(-5, -2, -5);
     this.scene.add(backLight);
 
     this.scene.add(this.unitGroup);
 
     this.unitGeo = createGVUnitGeometry(THREE);
-    this.unitMat = new THREE.MeshPhongMaterial({ 
-      color: 0xffffff, 
-      side: THREE.DoubleSide, 
-      flatShading: true,
-      shininess: 30
+    this.unitMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.75,
+      metalness: 0,
     });
 
     this.ready = true;
@@ -91,146 +99,160 @@ export class GVAssemblyView {
     }
   }
 
-  /**
-   * Render a simple ring of units.
-   */
-  addRing(count, rowIndex = 0, color = 0x4488cc) {
-    const radius = (count * this.UNIT_WIDTH) / (2 * Math.PI);
-    const angleStep = (2 * Math.PI) / count;
-    const offsetAngle = (rowIndex % 2 === 0) ? 0 : angleStep / 2;
-
-    const mat = this.unitMat.clone();
-    mat.color.set(color);
-
-    for (let i = 0; i < count; i++) {
-      const angle = i * angleStep + offsetAngle;
-      const mesh = new THREE.Mesh(this.unitGeo, mat);
-      
-      mesh.position.set(
-        radius * Math.cos(angle),
-        rowIndex * this.ROW_HEIGHT,
-        radius * Math.sin(angle)
-      );
-      
-      mesh.rotation.y = -angle - Math.PI/2;
-      this.unitGroup.add(mesh);
-    }
-  }
-
   clear() {
     if (this.instancedMesh) {
-      if (this.instancedMesh.geometry) this.instancedMesh.geometry.dispose();
-      if (this.instancedMesh.material) this.instancedMesh.material.dispose();
       this.unitGroup.remove(this.instancedMesh);
+      this.instancedMesh.dispose();
       this.instancedMesh = null;
     }
-    while(this.unitGroup.children.length > 0) {
+    while (this.unitGroup.children.length > 0) {
       const obj = this.unitGroup.children[0];
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
+      if (obj.geometry && obj.geometry !== this.unitGeo) obj.geometry.dispose();
+      if (obj.material && obj.material !== this.unitMat) obj.material.dispose();
       this.unitGroup.remove(obj);
     }
   }
 
+  _isChainPart(part) {
+    if (part.rows.length < 3) return false;
+    return part.rows.every((row) => row.pieces.reduce((s, p) => s + p.count, 0) <= 2);
+  }
+
   /**
-   * Render a full model with curvature using InstancedMesh for performance.
+   * Render a full model using InstancedMesh for performance.
    */
   renderModel(model) {
     this.clear();
     let currentBaseY = 0;
 
-    // 1. Count total units
     let totalCount = 0;
-    model.parts.forEach(part => {
-      part.rows.forEach(row => {
-        row.pieces.forEach(p => {
-          totalCount += p.count;
-        });
+    model.parts.forEach((part) => {
+      part.rows.forEach((row) => {
+        row.pieces.forEach((p) => { totalCount += p.count; });
       });
     });
-
     if (totalCount === 0) return;
 
-    // 2. Initialize InstancedMesh
     this.instancedMesh = new THREE.InstancedMesh(this.unitGeo, this.unitMat, totalCount);
     this.instancedMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
     this.unitGroup.add(this.instancedMesh);
 
     const helper = new THREE.Object3D();
+    const color = new THREE.Color();
     let instanceIdx = 0;
+    const place = (piece) => {
+      helper.updateMatrix();
+      this.instancedMesh.setMatrixAt(instanceIdx, helper.matrix);
+      this.instancedMesh.setColorAt(instanceIdx, color.set(piece.color));
+      instanceIdx++;
+    };
 
-    model.parts.forEach(part => {
-      let prevRadius = null;
+    model.parts.forEach((part) => {
+      if (this._isChainPart(part)) {
+        currentBaseY = this._renderChain(part, currentBaseY, helper, place);
+        return;
+      }
+
+      // Radius profile of the part, one entry per row.
+      const radii = part.rows.map((row) => {
+        const n = row.pieces.reduce((s, p) => s + p.count, 0);
+        return (n * this.UNIT_WIDTH) / (2 * Math.PI);
+      });
+
       let partY = currentBaseY;
-      
       part.rows.forEach((row, rowIndex) => {
-        const totalInRow = row.pieces.reduce((sum, p) => sum + p.count, 0);
-        const radius = (totalInRow * this.UNIT_WIDTH) / (2 * Math.PI);
+        const totalInRow = row.pieces.reduce((s, p) => s + p.count, 0);
+        const radius = radii[rowIndex];
         const angleStep = (2 * Math.PI) / totalInRow;
-        
-        // Tilt calculation: 
-        // We look at the change in radius relative to the row below.
-        let tilt = 0;
-        if (prevRadius !== null) {
-          const dr = radius - prevRadius;
-          // Slope-based tilt (inverted: narrowing dr < 0 gives positive tilt, which is inward)
-          tilt = Math.atan2(-dr, this.ROW_HEIGHT);
-          
-          // Refinement for narrowing/closing sections
-          if (dr < -0.01) {
-            tilt += 0.15; // Extra inward bias (positive) to close spheres
-          }
-          
-          // Refinement for constant radius rows
-          if (Math.abs(dr) < 0.001) {
-            // Midpoint-based tilt: flare out initially (negative), then tilt in (positive).
-            tilt = (rowIndex >= part.rows.length / 2) ? 0.15 : -0.1;
-          }
-        } else {
-          // Bottom row: slight outward tilt (negative) for stability
-          tilt = -0.15;
-        }
+
+        // Wall tilt follows the slope of the radius profile
+        // (central difference; one-sided at the ends).
+        const rPrev = radii[rowIndex - 1] ?? radius;
+        const rNext = radii[rowIndex + 1] ?? radius;
+        const span = (rowIndex > 0 && rowIndex < radii.length - 1) ? 2 : 1;
+        const tilt = Math.atan2(rNext - rPrev, span * this.ROW_HEIGHT);
 
         const offsetAngle = (row.alignment === 'offset') ? angleStep / 2 : 0;
-        let currentAngle = 0;
+        let currentAngle = offsetAngle;
 
-        row.pieces.forEach(piece => {
-          const color = new THREE.Color(piece.color);
-
+        row.pieces.forEach((piece) => {
           for (let i = 0; i < piece.count; i++) {
-            const angle = currentAngle + offsetAngle;
-            
             helper.position.set(
-              radius * Math.cos(angle),
+              radius * Math.cos(currentAngle),
               partY,
-              radius * Math.sin(angle)
+              radius * Math.sin(currentAngle),
             );
-            
-            // Set rotation: Y for ring placement, then X for tilt
-            helper.rotation.set(0, -angle - Math.PI / 2, 0);
-            helper.rotateX(tilt); 
-            helper.updateMatrix();
-
-            this.instancedMesh.setMatrixAt(instanceIdx, helper.matrix);
-            this.instancedMesh.setColorAt(instanceIdx, color);
-            
-            instanceIdx++;
+            // Face outward (+z of the unit is its outward side), then lean
+            // with the wall slope.
+            helper.rotation.set(0, Math.PI / 2 - currentAngle, 0);
+            helper.rotateX(tilt);
+            place(piece);
             currentAngle += angleStep;
           }
         });
-        
-        // Increment Y for the next row, adjusting for tilt
-        // (If tilted significantly, the vertical stride is smaller)
-        const stride = this.ROW_HEIGHT * Math.max(0.5, Math.cos(tilt));
-        partY += stride;
-        prevRadius = radius;
+
+        partY += this.ROW_HEIGHT * Math.max(0.55, Math.cos(tilt));
       });
-      
-      currentBaseY = partY + 0.5; // Gap between parts
+
+      currentBaseY = partY + 0.6; // gap between parts
     });
 
     this.instancedMesh.instanceMatrix.needsUpdate = true;
     if (this.instancedMesh.instanceColor) this.instancedMesh.instanceColor.needsUpdate = true;
+
+    this._frameModel();
+  }
+
+  /** Aim the camera so the whole model fills the view comfortably. */
+  _frameModel() {
+    if (!this.instancedMesh) return;
+    this.instancedMesh.computeBoundingBox();
+    const box = this.instancedMesh.boundingBox;
+    if (!box || box.isEmpty()) return;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const radius = Math.max(size.x, size.y, size.z) / 2 || 1;
+    const dist = (radius / Math.tan((this.camera.fov * Math.PI / 180) / 2)) * 1.3;
+
+    this.controls.target.copy(center);
+    this.camera.position.set(
+      center.x + dist * 0.5,
+      center.y + dist * 0.45,
+      center.z + dist * 0.75,
+    );
+    this.camera.lookAt(center);
+  }
+
+  /**
+   * Render a narrow part (neck, tail) as a chain of nested units that
+   * curves forward, the way GV chains are bent in real models.
+   */
+  _renderChain(part, baseY, helper, place) {
+    const stride = this.ROW_HEIGHT;
+    const bendPerUnit = Math.min(0.12, 2.4 / Math.max(1, part.rows.length));
+
+    const pos = new THREE.Vector3(0, baseY, 0);
+    const step = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const bend = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), bendPerUnit);
+
+    let topY = baseY;
+    part.rows.forEach((row) => {
+      row.pieces.forEach((piece) => {
+        for (let i = 0; i < piece.count; i++) {
+          helper.position.copy(pos);
+          helper.quaternion.copy(quat);
+          place(piece);
+        }
+      });
+      quat.multiply(bend);
+      step.set(0, stride, 0).applyQuaternion(quat);
+      pos.add(step);
+      topY = Math.max(topY, pos.y);
+    });
+
+    return topY + 0.6;
   }
 
   _animate() {

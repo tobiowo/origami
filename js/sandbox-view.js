@@ -90,11 +90,11 @@ export class SandboxView {
     this.scene.add(this.transformControls.getHelper());
 
     // Lighting
-    this.scene.add(new THREE.AmbientLight(0x404060, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    this.scene.add(new THREE.AmbientLight(0x404060, 0.8 * Math.PI));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7 * Math.PI);
     dirLight.position.set(5, 10, 5);
     this.scene.add(dirLight);
-    const fillLight = new THREE.DirectionalLight(0x4488cc, 0.3);
+    const fillLight = new THREE.DirectionalLight(0x4488cc, 0.3 * Math.PI);
     fillLight.position.set(-3, 2, -5);
     this.scene.add(fillLight);
 

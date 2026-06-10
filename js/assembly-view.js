@@ -152,13 +152,13 @@ export class AssemblyView {
     this.controls.panSpeed = 0.3;
     this.controls.staticMoving = true;
 
-    this.scene.add(new THREE.AmbientLight(0x404060, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    this.scene.add(new THREE.AmbientLight(0x404060, 0.8 * Math.PI));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI);
     dirLight.position.set(5, 10, 5);
     this.scene.add(dirLight);
 
     // Add a dynamic "cinematic" light
-    this.dynamicLight = new THREE.PointLight(0xffffff, 0.8, 20);
+    this.dynamicLight = new THREE.PointLight(0xffffff, 0.8 * Math.PI, 20, 0);
     this.scene.add(this.dynamicLight);
 
     this.scene.add(this.unitGroup);

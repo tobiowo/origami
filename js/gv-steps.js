@@ -132,7 +132,7 @@ export const steps = [
       <p>The swan is a classic of Golden Venture folding. It uses several parts: a body, a long curved neck, and tail feathers.</p>
     `,
     renderer: "assembly",
-    layout: "VjJhIzAwMDBGRi1iI2ZmNjYwMC1jIzAwODAwMC1kIzAwMDAwMC1lI0ZGRkZGRi1mIzgwMDA4MD5Cb2R5PFo6QWUzMHxYOkFlMzB8WjpBZTMwfFg6QWUzMHxaOkFlMzB8WDpBZTMwfFo6QWU3RmVBZTE0RmVBZTd8WDpBZTdGZTJBZTEzRmUyQWU2fFo6QWU2RmUzQWUxMkZlM0FlNnxYOkFlNkZlNEFlMTFGZTRBZTV8WjpBZTVGZTVBZTEwRmU1QWU1fFg6WU1GZTYWVTlGZTZBVTRAfFo6QTQwRmU3QVU4RmU3QTQwZll6QTQwRmU4QVU3RmU4QTMwfFo6QTMwRmU5QVU2RmU5QTMwfFg6QTMwRmUxMEFVTUZlMTBBMjB8WjpBMjBGZTExQVU0RmUxMUEyMHxYOkEyMEZlMTJBVTNGZTEyQWV8WjpBZmVlMTNBZTIwRmUxM0FlfFg6QWZmZTE0QWZmZTE0Pk5lY2s8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWJ+VGFpbDxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWUA"
+    layout: "VjJlI0ZGRkZGRi1iI2ZmNjYwMD5Cb2R5PFo6QWUyNHxYOkFlMjZ8WjpBZTI4fFg6QWUzMHxaOkFlMzB8WDpBZTMwfFo6QWUyOHxYOkFlMjZ8WjpBZTI0fFg6QWUyMHxaOkFlMTY+TmVjazxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBZXxaOkFlfFo6QWV8WjpBYj5UYWlsPFo6QWUyfFg6QWUyfFo6QWUyfFg6QWUyfFo6QWUyfFg6QWUy"
   },
   {
     title: "Example: GreatBall",
@@ -148,7 +148,7 @@ export const steps = [
       <p>A simpler version of the spherical geometry. This demonstrates the core principle of expanding and then contracting to form a rounded, closed volume.</p>
     `,
     renderer: "assembly",
-    layout: "VmpKaGVTTkdSa1pHUmtZK1UyMWhiR3dnVTNCb1pYSmxQRm82UVdVMmZGbzZRV1V4TW54YU9rRmxNVGg4V2pwQlpUSXlmRm82UVdVeU1ueGFPa0ZsTVRoOFdqcEJaVEV5ZkZvNlFXVTI="
+    layout: "VjJheSNGRkZGRkY+U21hbGwgU3BoZXJlPFo6QWU2fFo6QWUxMnxaOkFlMTh8WjpBZTIyfFo6QWUyMnxaOkFlMTh8WjpBZTEyfFo6QWU2"
   },
   {
     title: "Example: Mini Pineapple",
