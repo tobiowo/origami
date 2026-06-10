@@ -48,7 +48,7 @@ export class FoldingView {
         three.enableCameraRotate(false);
       }
 
-      this.dynamicLight = new THREE.PointLight(0xffffff, 0.8, 10);
+      this.dynamicLight = new THREE.PointLight(0xffffff, 0.8 * Math.PI, 10, 0);
       three.scene.add(this.dynamicLight);
       
       // Use OrbitControls for rotate + zoom only; pan is handled via modelWrapper below

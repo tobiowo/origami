@@ -302,16 +302,19 @@
       scene.background = new THREE.Color(0xffffff);
       setBackgroundColor();
       scene.add(modelWrapper);
-      var directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.7);
+      // Intensities are legacy (pre-r155) values scaled by PI for the
+      // physically-based lighting model that is mandatory since three r165.
+      var directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.7 * Math.PI);
       directionalLight1.position.set(100, 100, 100);
       scene.add(directionalLight1);
-      var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+      var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI);
       directionalLight2.position.set(0, -100, 0);
       scene.add(directionalLight2);
-      var spotLight1 = new THREE.SpotLight(0xffffff, 0.3);
+      var spotLight1 = new THREE.SpotLight(0xffffff, 0.3 * Math.PI);
       spotLight1.position.set(0, 100, 200);
+      spotLight1.decay = 0;
       scene.add(spotLight1);
-      var ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+      var ambientLight = new THREE.AmbientLight(0xffffff, 0.2 * Math.PI);
       scene.add(ambientLight);
       scene.add(camera);
       resetCamera();

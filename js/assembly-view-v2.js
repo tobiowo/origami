@@ -141,12 +141,12 @@ export class AssemblyView {
     this.controls.rotateSpeed = 2.0;
     this.controls.staticMoving = true;
 
-    this.scene.add(new THREE.AmbientLight(0x404060, 0.9));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    this.scene.add(new THREE.AmbientLight(0x404060, 0.9 * Math.PI));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5 * Math.PI);
     dirLight.position.set(5, 10, 5);
     this.scene.add(dirLight);
 
-    this.dynamicLight = new THREE.PointLight(0xffffff, 0.7, 20);
+    this.dynamicLight = new THREE.PointLight(0xffffff, 0.7 * Math.PI, 20, 0);
     this.scene.add(this.dynamicLight);
 
     this.scene.add(this.unitGroup);

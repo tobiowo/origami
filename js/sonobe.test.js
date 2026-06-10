@@ -1,6 +1,6 @@
 import { expect, test, beforeAll } from "vitest";
 import { getSonobeForStep, createSonobeFOLD } from "./sonobe.js";
-import ear from "../references/rabbit-ear/src/index.js";
+import ear from "./lib/rabbit-ear.js";
 
 beforeAll(() => {
   // Mock window.ear for the sonobe.js module
