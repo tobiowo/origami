@@ -53,15 +53,50 @@ test("Step 2: Diagonal Folds Footprint", () => {
   expect(area).toBeCloseTo(0.5, 2);
 });
 
-test("Step 3: Fold in Half Footprint", () => {
+test("Step 3: V Fold Footprint", () => {
   const area = getFoldedArea('step3');
-  // Parallelogram (area 0.25) folded in half vertically.
-  // Footprint is now a square 0.5x0.5, area 0.25.
+  // Parallelogram bent 150° along the center crease. The static half still
+  // spans 0.5 x 0.5 and the lifted half stays inside that bounding box.
   expect(area).toBeCloseTo(0.25, 2);
+});
+
+test("Step 3 ends as a 3D V, not folded flat", () => {
+  const fold = getSonobeForStep('step3', 1);
+  const graph = ear.graph(fold);
+  graph.populate();
+  const folded = graph.folded([0]);
+  const box = folded.boundingBox();
+  expect(box.span[2]).toBeGreaterThan(0.1);
 });
 
 test("Step 4: Completed Unit Footprint", () => {
   const area = getFoldedArea('step4');
   // The folded 3D shape has a footprint area of ~0.186.
   expect(area).toBeCloseTo(0.186, 2);
+});
+
+test("Step 4 percent animates only the tabs; the V stays in place", () => {
+  const start = getSonobeForStep('step4', 0);
+  const angles = (f) => f.edges_foldAngle.filter(a => a !== 0);
+  // At percent 0 the only non-zero angle is the center V fold.
+  expect(angles(start)).toEqual([150]);
+  const end = getSonobeForStep('step4', 1);
+  expect(angles(end).sort((a, b) => a - b)).toEqual([-120, -120, 150]);
+});
+
+test("Step 1 uses a minimal mesh", () => {
+  // The dense 4x4 grid destabilized the origami-simulator GPU solver
+  // (positions saturated and the step rendered blank). Keep this mesh small.
+  const fold = getSonobeForStep('step1', 1);
+  expect(fold.vertices_coords.length).toBeLessThanOrEqual(8);
+  expect(fold.edges_assignment.filter(a => a === 'V').length).toBe(2);
+});
+
+test("Flat folds stay just shy of 180° to avoid coplanar z-fighting", () => {
+  for (const step of ['step1', 'step2']) {
+    const fold = getSonobeForStep(step, 1);
+    for (const a of fold.edges_foldAngle) {
+      expect(Math.abs(a)).toBeLessThan(180);
+    }
+  }
 });
