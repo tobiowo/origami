@@ -17,6 +17,11 @@ This application provides a comprehensive tutorial for creating modular origami.
 - **Assembly Viewer**: Row-based 3D visualization showing how units interlock in rings.
 - **Layout Importer**: Support for importing complex models (swans, vases, etc.) via Base64 strings from the Golden Venture Art Designer.
 
+### Keel Unit (Open-Frame Polyhedra)
+- **Original unit designed for this app** (in the Penultimate/PHiZZ tradition): a 3:1 strip folded into a mitered V-strut.
+- **Interactive Folding Tutorial**: crease, sleeve, miter, and keel folds with layered 3D rendering.
+- **Frame Assembly Viewer**: open-lattice pentagon, tetrahedron, cube, octahedron, dodecahedron, and icosahedron.
+
 ## Tech Stack
 
 - **Three.js**: 3D rendering engine.
@@ -38,6 +43,7 @@ Then open your browser to `http://localhost:3000`.
 
 - `index.html`: Main entry point (Sonobe Tutorial).
 - `golden-venture.html`: Golden Venture (3D Origami) tutorial and viewer.
+- `keel.html`: Keel unit (open-frame polyhedra) tutorial and viewer.
 - `sandbox.html`: Modular assembly sandbox.
 - `animation-test.html`: Standalone folding animation prototype.
 - `js/`: Application modules and logic.
