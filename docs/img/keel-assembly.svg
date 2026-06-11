@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" role="img" aria-label="Assembled pentagon frame">
+<polygon points="0.0,-171.6 163.2,-53.0 135.7,-44.1 0.0,-142.7" fill="#e74c3c" stroke="#2a2e3a" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="163.2,-53.0 100.9,138.8 83.9,115.4 135.7,-44.1" fill="#3498db" stroke="#2a2e3a" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="100.9,138.8 -100.9,138.8 -83.9,115.4 83.9,115.4" fill="#2ecc71" stroke="#2a2e3a" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="-100.9,138.8 -163.2,-53.0 -135.7,-44.1 -83.9,115.4" fill="#f39c12" stroke="#2a2e3a" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="-163.2,-53.0 0.0,-171.6 0.0,-142.7 -135.7,-44.1" fill="#9b59b6" stroke="#2a2e3a" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>
