@@ -371,6 +371,8 @@ export class FoldingView {
       import('./sonobe.js').then(m => {
         this.loadPattern(m.getSonobeForStep(stepFunc, percent));
         this.setFoldPercent(1);
+      }).catch(err => {
+        console.error(`Failed to load fold pattern for ${stepFunc}:`, err);
       });
       return;
     }
@@ -383,6 +385,8 @@ export class FoldingView {
         const fold = m.getSonobeForStep(stepFunc, 1);
         this.loadPattern(fold);
         this.setFoldPercent(percent);
+      }).catch(err => {
+        console.error(`Failed to load fold pattern for ${stepFunc}:`, err);
       });
     } else {
       this.setFoldPercent(percent);
