@@ -9,6 +9,15 @@
  * palette key, and an optional repeat count.
  */
 
+// The layout string is fully attacker-controlled (it is pasted by the user and
+// decoded from Base64). Each piece's repeat count is turned into that many 3D
+// instances by the assembly view, so an unbounded count would let a crafted
+// string allocate a gigantic InstancedMesh and hang or crash the browser.
+// Clamp both the per-piece count and the total number of pieces per model.
+const MAX_PIECE_COUNT = 1000;
+const MAX_TOTAL_PIECES = 10000;
+const MAX_NAME_LENGTH = 200;
+
 export function parseGVLayout(encoded) {
   try {
     const decoded = atob(encoded.trim());
@@ -26,6 +35,7 @@ export function parseGVLayout(encoded) {
     }
 
     const parts = [];
+    let totalPieces = 0;
     const partsContent = decoded.substring(firstPartStart);
     const partSections = partsContent.split(/[>~]/).filter(s => s.length > 0);
 
@@ -59,10 +69,18 @@ export function parseGVLayout(encoded) {
             i++;
           }
 
+          let count = parseInt(countStr) || 1;
+          count = Math.min(Math.max(count, 1), MAX_PIECE_COUNT);
+          if (totalPieces + count > MAX_TOTAL_PIECES) {
+            count = MAX_TOTAL_PIECES - totalPieces;
+          }
+          if (count <= 0) break;
+          totalPieces += count;
+
           pieces.push({
             type: typeChar, // A, B, C, E, T, G, V
             color: colorPalette[colorKey] || '#ffffff',
-            count: parseInt(countStr) || 1
+            count
           });
         }
 
@@ -70,7 +88,8 @@ export function parseGVLayout(encoded) {
         return { alignment, pieces, flag };
       }).filter(r => r !== null);
 
-      if (rows.length > 0) parts.push({ name, rows });
+      const safeName = (name || "").slice(0, MAX_NAME_LENGTH);
+      if (rows.length > 0) parts.push({ name: safeName, rows });
     });
 
     if (parts.length === 0) return null;

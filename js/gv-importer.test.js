@@ -48,4 +48,24 @@ describe("parseGVLayout", () => {
     expect(parseGVLayout(enc("V1a#000000>X<Z:Aa2"))).toBeNull();
     expect(parseGVLayout(enc("garbage"))).toBeNull();
   });
+
+  test("clamps an oversized per-piece count", () => {
+    const model = parseGVLayout(enc("V2a#0000FF>Body<Z:Aa999999999"));
+    expect(model.parts[0].rows[0].pieces[0].count).toBe(1000);
+  });
+
+  test("caps the total number of pieces across the model", () => {
+    const model = parseGVLayout(enc("V2a#0000FF>Body<Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000|Z:Aa1000"));
+    const total = model.parts
+      .flatMap((p) => p.rows)
+      .flatMap((r) => r.pieces)
+      .reduce((s, p) => s + p.count, 0);
+    expect(total).toBe(10000);
+  });
+
+  test("truncates an excessively long part name", () => {
+    const longName = "x".repeat(500);
+    const model = parseGVLayout(enc(`V2a#0000FF>${longName}<Z:Aa2`));
+    expect(model.parts[0].name.length).toBe(200);
+  });
 });
