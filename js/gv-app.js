@@ -124,6 +124,10 @@ class GVApp {
         const model = parseGVLayout(step.layout);
         if (model) {
           this.assemblyView.renderModel(model);
+        } else {
+          console.error(
+            `Built-in tutorial layout for step ${this.currentStep} failed to parse.`,
+          );
         }
       } else {
         const model = {
