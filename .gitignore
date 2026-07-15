@@ -5,6 +5,9 @@ references/
 # Dependencies
 node_modules/
 
+# Test coverage reports
+coverage/
+
 # Local server logs
 server.log
 server_err.log
