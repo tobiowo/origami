@@ -3,14 +3,7 @@
  * Features: real V-shaped unit geometry, snap-to-connect, model presets, selection highlights.
  */
 import { AssemblyView } from './assembly-view.js';
-
-const UNIT_COLORS = [
-  0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c,
-  0xd35400, 0x27ae60, 0x2980b9, 0x8e44ad, 0xc0392b, 0x16a085,
-  0xe67e22, 0x3498db, 0xe91e63, 0x00bcd4, 0x8bc34a, 0xff9800,
-  0x673ab7, 0x009688, 0xf44336, 0x03a9f4, 0xcddc39, 0xff5722,
-  0x9c27b0, 0x4caf50, 0x2196f3, 0xffeb3b, 0x795548, 0x607d8b,
-];
+import { UNIT_COLORS } from './unit-colors.js';
 
 export class SandboxView {
   constructor() {

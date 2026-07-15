@@ -1,4 +1,5 @@
 import { SandboxView, UNIT_COLORS } from './sandbox-view.js';
+import { onDOMReady } from './dom-ready.js';
 
 function init() {
   const sandbox = new SandboxView();
@@ -74,8 +75,4 @@ function init() {
   sandbox.addUnit();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+onDOMReady(init);

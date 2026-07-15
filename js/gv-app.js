@@ -2,6 +2,7 @@ import { steps as gvSteps } from './gv-steps.js';
 import { GVFoldingView } from './gv-folding-view.js';
 import { GVAssemblyView } from './gv-assembly.js';
 import { parseGVLayout } from './gv-importer.js';
+import { onDOMReady } from './dom-ready.js';
 
 class GVApp {
   constructor() {
@@ -165,8 +166,4 @@ function init() {
   app.start();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+onDOMReady(init);
