@@ -3,23 +3,8 @@
  * Units are constructed with 2 body triangles and 2 tab triangles.
  */
 
-// ── Shared vector math helpers ──────────────────────────────────────
-const V3 = {
-  mid:   (a, b) => a.map((v, i) => (v + b[i]) / 2),
-  add:   (a, b) => a.map((v, i) => v + b[i]),
-  sub:   (a, b) => a.map((v, i) => v - b[i]),
-  scl:   (a, s) => a.map(v => v * s),
-  dot:   (a, b) => a.reduce((s, v, i) => s + v * b[i], 0),
-  cross: (a, b) => [
-    a[1]*b[2] - a[2]*b[1],
-    a[2]*b[0] - a[0]*b[2],
-    a[0]*b[1] - a[1]*b[0]
-  ],
-  len:       (a) => Math.sqrt(V3.dot(a, a)),
-  normalize: (a) => { const l = V3.len(a); return l > 0 ? V3.scl(a, 1/l) : a; },
-  add3:  (a, b, c) => a.map((v, i) => v + b[i] + c[i]),
-};
-const { mid, add, sub, scl, dot, cross, len, normalize, add3 } = V3;
+import { mid, add, sub, scl, dot, cross, len, normalize, add3 } from './vec3.js';
+import { UNIT_COLORS } from './unit-colors.js';
 
 // ── Helper: build stellated polyhedron units from faces + vertices ───
 // Given a polyhedron { V[], faces[][] }, builds Sonobe units (one per edge).
@@ -967,11 +952,3 @@ export class AssemblyView {
     if (this.animationId) cancelAnimationFrame(this.animationId);
   }
 }
-
-const UNIT_COLORS = [
-  0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c,
-  0xd35400, 0x27ae60, 0x2980b9, 0x8e44ad, 0xc0392b, 0x16a085,
-  0xe67e22, 0x3498db, 0xe91e63, 0x00bcd4, 0x8bc34a, 0xff9800,
-  0x673ab7, 0x009688, 0xf44336, 0x03a9f4, 0xcddc39, 0xff5722,
-  0x9c27b0, 0x4caf50, 0x2196f3, 0xffeb3b, 0x795548, 0x607d8b,
-];

@@ -3,6 +3,7 @@ import { FoldingView } from './folding-view.js';
 import { AssemblyView } from './assembly-view-v2.js';
 import { createSonobeFOLD } from './sonobe.js';
 import { createSonobeAnimationSequence } from './sonobe-animation.js';
+import { onDOMReady } from './dom-ready.js';
 
 class App {
   constructor() {
@@ -258,10 +259,4 @@ function init() {
   app.start();
 }
 
-// Support both direct script loading (DOMContentLoaded not yet fired)
-// and dynamic import from bootstrap (DOMContentLoaded already fired)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+onDOMReady(init);
